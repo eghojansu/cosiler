@@ -1,0 +1,4 @@
+/dev/
+/var/
+/vendor/
+.php-cs-fixer.cache

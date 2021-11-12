@@ -1,0 +1,20 @@
+{
+    "name": "eghojansu/cosiler",
+    "type": "library",
+    "require": {
+        "php": ">=8.0"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Ekok\\Cosiler\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Eko Kurniawan",
+            "email": "setiawanegho@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable"
+}
