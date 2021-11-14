@@ -55,11 +55,7 @@ function json(string $input = 'php://input')
  */
 function body_parse(string $input = 'php://input')
 {
-    if (is_json()) {
-        return json($input);
-    }
-
-    return post();
+    return is_json() ? json($input) : post();
 }
 
 /**
@@ -83,7 +79,7 @@ function is_multipart(): ?bool
  */
 function content_is(string $mime): ?bool
 {
-    return null === ($str = content_type()) ? $mime === \substr(\strtolower($str), 0, \strlen($mime)) : null;
+    return null === ($str = content_type()) ? null : $mime === \substr(\strtolower($str), 0, \strlen($mime));
 }
 
 /**
@@ -91,7 +87,7 @@ function content_is(string $mime): ?bool
  */
 function content_type(): ?string
 {
-    return headers('content-type');
+    return headers('Content-Type');
 }
 
 /**
@@ -110,11 +106,18 @@ function headers(string $key = null): array|string|null
     }
 
     return Cosiler\map($_SERVER, fn ($value, $header) => match (true) {
-        'CONTENT_TYPE' === $header => array('content-type', $value),
-        'CONTENT_LENGTH' === $header => array('content-length', $value),
-        0 === \strncmp($header, 'HTTP_', 5) => array(\strtolower(\str_replace('_', '-', \substr($header, 5))), $value),
+        'CONTENT_TYPE' === $header => array('Content-Type', $value),
+        'CONTENT_LENGTH' === $header => array('Content-Length', $value),
+        0 === \strncmp($header, 'HTTP_', 5) => array(\ucwords(\strtolower(\str_replace('_', '-', \substr($header, 5))), '-'), $value),
         default => null,
     });
+}
+
+function header_exists(string $key): bool
+{
+    $ukey = \strtoupper(\str_replace('-', '_', $key));
+
+    return isset($_SERVER[$ukey]) || isset($_SERVER['HTTP_' . $ukey]);
 }
 
 /**
@@ -142,7 +145,7 @@ function post(?string $key = null)
  *
  * @return null|array<string, null|string>|string
  */
-function request(?string $key = null)
+function input(?string $key = null)
 {
     return $key ? ($_REQUEST[$key] ?? null) : $_REQUEST;
 }
@@ -154,7 +157,7 @@ function request(?string $key = null)
  *
  * @return null|array|array<string, array>
  */
-function files(?string $key = null)
+function file(?string $key = null)
 {
     return $key ? ($_FILES[$key] ?? null) : $_FILES;
 }
@@ -265,11 +268,7 @@ function recommended_locale(string $default = ''): string
     }
 
     if (empty($locale)) {
-        $locale = $default;
-    }
-
-    if (empty($locale) && \function_exists('locale_get_default')) {
-        $locale = \locale_get_default();
+        $locale = $default ?: (\function_exists('locale_get_default') ? \locale_get_default() : '');
     }
 
     return $locale;
@@ -300,5 +299,5 @@ function authorization_header($request = null): ?string
  */
 function user_agent(): ?string
 {
-    return headers('user-agent');
+    return headers('User-Agent');
 }

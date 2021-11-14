@@ -8,6 +8,8 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Container;
 
+use Ekok\Cosiler;
+
 /**
  * Box storage.
  */
@@ -15,9 +17,12 @@ function box(): \stdClass
 {
     static $box;
 
-    if (!$box) {
+    if (!$box?->prepared) {
         $box = new \stdClass();
-        $box->content = array();
+        $box->hive = array();
+        $box->rules = array();
+        $box->protected = array();
+        $box->prepared = true;
     }
 
     return $box;
@@ -34,10 +39,10 @@ function co($key, ...$value)
     $box = box();
 
     if ($value) {
-        $box->content['co'][$key] = $value[0];
+        $box->hive['co'][$key] = $value[0];
     }
 
-    return $box->content['co'][$key] ?? null;
+    return $box->hive['co'][$key] ?? null;
 }
 
 /**
@@ -47,9 +52,14 @@ function co($key, ...$value)
  */
 function has($key): bool
 {
-    $box = box()->content;
+    $box = box();
 
-    return isset($box[$key]) || \array_key_exists($key, $box);
+    return (
+        isset($box->hive[$key])
+        || \array_key_exists($key, $box->hive)
+        || isset($box->rules[$key])
+        || isset($box->protected[$key])
+    );
 }
 
 /**
@@ -61,7 +71,9 @@ function has($key): bool
  */
 function get($key)
 {
-    return box()->content[$key] ?? null;
+    $box = box();
+
+    return $box->hive[$key] ?? $box->protected[$key] ?? make($key, false) ?? null;
 }
 
 /**
@@ -72,7 +84,13 @@ function get($key)
  */
 function set($key, $value): void
 {
-    box()->content[$key] = $value;
+    $box = box();
+
+    if ($value instanceof \Closure || (is_array($value) && \is_callable($value))) {
+        $box->rules[$key] = $value;
+    } else {
+        $box->hive[$key] = $value;
+    }
 }
 
 /**
@@ -82,45 +100,38 @@ function set($key, $value): void
  */
 function clear($key): void
 {
-    unset(box()->content[$key]);
+    $box = box();
+
+    unset($box->hive[$key], $box->rules[$key], $box->protected[$key]);
 }
 
-function dot(string $key)
+function protect($key, callable $value): void
 {
-    $var = box()->content;
-    $parts = \explode('.', $key);
+    box()->protected[$key] = $value;
+}
 
-    foreach ($parts as $part) {
-        if (\is_scalar($var) || null === $var) {
-            $var = array();
+function make($key, bool $throw = true)
+{
+    $box = box();
+    $rule = $box->rules[$key] ?? null;
+
+    if (!$rule) {
+        if ($throw) {
+            throw new \LogicException(sprintf('No rule defined for: "%s"', $key));
         }
 
-        if (\is_array($var) && (isset($var[$part]) || \array_key_exists($part, $var))) {
-            $var = &$var;
-        } else {
-            $var = null;
-
-            break;
-        }
+        return null;
     }
 
-    return $var;
+    return $box->hive[$key] ?? ($box->hive[$key] = $rule());
 }
 
 function merge(array $config): void
 {
-    $box = box();
-
-    foreach ($config as $key => $value) {
-        $box->content[$key] = $value;
-    }
+    Cosiler\walk($config, fn($value, $key) => set($key, $value));
 }
 
 function config(string ...$files): void
 {
-    foreach ($files as $file) {
-        if (\is_readable($file) && \is_array($config = require $file)) {
-            merge($config);
-        }
-    }
+    Cosiler\walk($files, fn($file) => \is_readable($file) && \is_array($config = require $file) && merge($config));
 }

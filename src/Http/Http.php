@@ -26,9 +26,7 @@ function cookie(?string $key = null)
 function session(?string $key = null, ...$value)
 {
     if ($value && $key) {
-        if (PHP_SESSION_ACTIVE !== \session_status()) {
-            \session_start();
-        }
+        (PHP_SESSION_ACTIVE === \session_status() || headers_sent()) || \session_start();
 
         $_SESSION[$key] = $value[0];
     }
@@ -39,7 +37,7 @@ function session(?string $key = null, ...$value)
 function session_end(): void
 {
     \session_unset();
-    \session_destroy();
+    PHP_SESSION_ACTIVE !== \session_status() || \session_destroy();
 }
 
 /**
@@ -71,13 +69,9 @@ function url(?string $path = null): string
  */
 function path(): string
 {
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
-
     // NOTE: When using built-in server with a router script, SCRIPT_NAME will be same as the REQUEST_URI
-    if (PHP_SAPI === 'cli-server') {
-        $scriptName = '';
-    }
+    $scriptName = PHP_SAPI === 'cli-server' ? '' : ($_SERVER['SCRIPT_NAME'] ?? '');
+    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
 
     $queryString = \strpos($requestUri, '?');
     $requestUri = false === $queryString ? $requestUri : \substr($requestUri, 0, $queryString);

@@ -25,7 +25,7 @@ const STOP_PROPAGATION = 'route_stop_propagation';
  */
 function get(string $path, $callback, $request = null)
 {
-    return add('get', $path, $callback, $request);
+    return handle('get', $path, $callback, $request);
 }
 
 /**
@@ -39,7 +39,7 @@ function get(string $path, $callback, $request = null)
  */
 function post(string $path, $callback, $request = null)
 {
-    return add('post', $path, $callback, $request);
+    return handle('post', $path, $callback, $request);
 }
 
 /**
@@ -53,7 +53,7 @@ function post(string $path, $callback, $request = null)
  */
 function put(string $path, $callback, $request = null)
 {
-    return add('put', $path, $callback, $request);
+    return handle('put', $path, $callback, $request);
 }
 
 /**
@@ -67,7 +67,7 @@ function put(string $path, $callback, $request = null)
  */
 function delete(string $path, $callback, $request = null)
 {
-    return add('delete', $path, $callback, $request);
+    return handle('delete', $path, $callback, $request);
 }
 
 /**
@@ -81,7 +81,7 @@ function delete(string $path, $callback, $request = null)
  */
 function options(string $path, $callback, $request = null)
 {
-    return add('options', $path, $callback, $request);
+    return handle('options', $path, $callback, $request);
 }
 
 /**
@@ -95,7 +95,7 @@ function options(string $path, $callback, $request = null)
  */
 function any(string $path, $callback, $request = null)
 {
-    return add('any', $path, $callback, $request);
+    return handle('any', $path, $callback, $request);
 }
 
 /**
@@ -109,7 +109,7 @@ function any(string $path, $callback, $request = null)
  *
  * @return null|mixed
  */
-function add(string $method, string $path, $handler, $request = null)
+function handle($method, string $path, $handler, $request = null)
 {
     if (canceled() || (did_match() && is_propagation_stopped())) {
         return null;
@@ -151,50 +151,17 @@ function resource(string $base_path, string $resources_path, ?string $identity_p
     $base_path = '/'.\trim($base_path, '/');
     $resources_path = \rtrim($resources_path, '/');
     $id = $identity_param ?? 'id';
-
-    /** @var array<\Closure(): mixed> $routes */
-    $routes = array(
-        /** @return mixed */
-        static function () use ($base_path, $resources_path, $request) {
-            return get($base_path, $resources_path.'/index.php', $request);
-        },
-        /** @return mixed */
-        static function () use ($base_path, $resources_path, $request) {
-            return get($base_path.'/create', $resources_path.'/create.php', $request);
-        },
-        /** @return mixed */
-        static function () use ($base_path, $resources_path, $request, $id) {
-            return get($base_path.'/{'.$id.'}/edit', $resources_path.'/edit.php', $request);
-        },
-        /** @return mixed */
-        static function () use ($base_path, $resources_path, $request, $id) {
-            return get($base_path.'/{'.$id.'}', $resources_path.'/show.php', $request);
-        },
-        /** @return mixed */
-        static function () use ($base_path, $resources_path, $request) {
-            return post($base_path, $resources_path.'/store.php', $request);
-        },
-        /** @return mixed */
-        static function () use ($base_path, $resources_path, $request, $id) {
-            return put($base_path.'/{'.$id.'}', $resources_path.'/update.php', $request);
-        },
-        /** @return mixed */
-        static function () use ($base_path, $resources_path, $request, $id) {
-            return delete($base_path.'/{'.$id.'}', $resources_path.'/destroy.php', $request);
-        },
+    $resources = array(
+        array('get', null, 'index'),
+        array('get', '/create', 'create'),
+        array('get', '/{'.$id.'}/edit', 'edit'),
+        array('get', '/{'.$id.'}', 'show'),
+        array('post', null, 'store'),
+        array('put', '/{'.$id.'}', 'update'),
+        array('delete', '/{'.$id.'}', 'destroy'),
     );
 
-    /** @var callable(): mixed $route */
-    foreach ($routes as $route) {
-        /** @var mixed $result */
-        $result = $route();
-
-        if (null !== $result) {
-            return $result;
-        }
-    }
-
-    return null;
+    return Cosiler\first($resources, fn($args) => handle($args[0], $base_path.$args[1], $resources_path.'/'.$args[2].'.php', $request));
 }
 
 /**
@@ -241,7 +208,7 @@ function files(string $basePath, string $prefix = '', $request = null)
         }
 
         /** @var mixed $result */
-        $result = add($method, $path, (string) $filename, $request);
+        $result = handle($method, $path, (string) $filename, $request);
 
         if (null !== $result) {
             return $result;
@@ -287,7 +254,7 @@ function class_name(string $basePath, $className, $request = null): void
 
         \array_unshift($path_segments, $basePath);
 
-        add(
+        handle(
             $specs[0],
             \implode('/', $path_segments),
             function (array $params) use ($method, $object) {
@@ -319,6 +286,16 @@ function method_path($request = null): array
     }
 
     return array(Request\method(), Http\path());
+}
+
+/**
+ * Avoids routes to be called even on a match.
+ *
+ * @return void
+ */
+function cancel(): void
+{
+    Container\co(CANCEL, true);
 }
 
 /**

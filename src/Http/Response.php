@@ -23,7 +23,7 @@ use Ekok\Cosiler\Http\Request;
 function output(string $content = '', int $code = 204, string $mimeType = 'text/plain', string $charset = 'utf-8'): int
 {
     \http_response_code($code);
-    \header(sprintf('Content-Type: %s;charset=%s', $mimeType, $charset));
+    header('Content-Type', sprintf('%s;charset=%s', $mimeType, $charset));
 
     return print $content;
 }
@@ -93,7 +93,7 @@ function json($content, int $code = 200, string $charset = 'utf-8'): int
  */
 function header(string $key, string $val, bool $replace = true): void
 {
-    \header($key.': '.$val, $replace);
+    headers_sent() || \header($key.': '.$val, $replace);
 }
 
 /**

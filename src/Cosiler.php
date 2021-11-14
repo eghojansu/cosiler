@@ -4,20 +4,6 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler;
 
-
-function fixslashes(string $str): string
-{
-    return \strtr($str, array(
-        '\\' => '/',
-        '//' => '/',
-    ));
-}
-
-function split(string $content, string $symbols = ',;|'): array
-{
-    return \array_map('trim', \preg_split('/['.\preg_quote($symbols, '/').']/i', $content, PREG_SPLIT_NO_EMPTY));
-}
-
 /**
  * Returns a function that requires the given filename.
  *
@@ -60,7 +46,7 @@ function map(array $items, callable $map): array
             continue;
         }
 
-        $update[\array_shift($result)] = \array_shift($result);
+        $update[$result[0]] = $result[1] ?? null;
     }
 
     return $update;
@@ -69,7 +55,7 @@ function map(array $items, callable $map): array
 /**
  * Perform callback to array with value and key.
  */
-function each(array $items, callable $callback, bool $keepKeys = true, bool $skipNulls = false): array
+function each(array $items, callable $callback, bool $keepKeys = true, bool $skipNulls = true): array
 {
     $update = array();
 
@@ -81,11 +67,39 @@ function each(array $items, callable $callback, bool $keepKeys = true, bool $ski
         }
 
         if ($keepKeys) {
-            $update[$key] = $value;
+            $update[$key] = $result;
         } else {
-            $update[] = $value;
+            $update[] = $result;
         }
     }
 
     return $update;
+}
+
+function walk(array $items, callable $callback): void
+{
+    foreach ($items as $key => $value) {
+        $callback($value, $key, $items);
+    }
+}
+
+function first(array $items, callable $callback)
+{
+    foreach ($items as $key => $value) {
+        if (null !== $result = $callback($value, $key, $items)) {
+            return $result;
+        }
+    }
+
+    return null;
+}
+
+function fixslashes(string $str): string
+{
+    return \strtr($str, array('\\' => '/', '//' => '/'));
+}
+
+function split(string $str, string $symbols = ',;|'): array
+{
+    return \array_filter(\array_map('trim', \preg_split('/[' . $symbols . ']/i', $str, 0, PREG_SPLIT_NO_EMPTY)));
 }

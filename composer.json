@@ -8,6 +8,21 @@
     "autoload": {
         "psr-4": {
             "Ekok\\Cosiler\\": "src/"
+        },
+        "files": [
+            "src/Container/Container.php",
+            "src/Encoder/Json.php",
+            "src/File/File.php",
+            "src/Http/Http.php",
+            "src/Http/Request.php",
+            "src/Http/Response.php",
+            "src/Route/Route.php",
+            "src/Cosiler.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ekok\\Cosiler\\Tests\\Unit\\": "tests/Unit/"
         }
     },
     "authors": [
@@ -16,5 +31,8 @@
             "email": "setiawanegho@gmail.com"
         }
     ],
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\File;
 
-function touchContent(string $path, string $content = null, int $permissions = 0775): bool
+function touch(string $path, string $content = null, int $permissions = 0775): bool
 {
     if (\is_writable($path)) {
         if (null !== $content) {
