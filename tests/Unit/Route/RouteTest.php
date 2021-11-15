@@ -260,4 +260,57 @@ final class RouteTest extends TestCase
         $actual = Route\get('/bar/baz', fn() => 'foo');
         $this->assertSame('foo', $actual);
     }
+
+    public function testStaticMethod()
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/';
+
+        $result = Route\get('/', RouteClass::class . '::staticMethod');
+
+        $this->assertSame('static_method', $result);
+    }
+
+    public function testWithBase()
+    {
+        Route\base('/bar');
+
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/foo/bar/baz';
+
+        $result = Route\get('/baz', static function() {
+            return 'foo';
+        });
+
+        $this->assertSame('foo', $result);
+
+        Route\base('');
+    }
+
+    /** @dataProvider routeFacadesProvider */
+    public function testRouteFacades(string $method)
+    {
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('Route /bar/baz should match');
+
+        $call = 'Ekok\Cosiler\Route\\' . $method;
+        $_SERVER['PATH_INFO'] = '/bar/baz';
+        $_SERVER['REQUEST_METHOD'] = $method;
+
+        $call('/bar/baz', function () {
+            throw new \Exception('Route /bar/baz should match');
+        });
+    }
+
+    public function routeFacadesProvider()
+    {
+        return array(
+            'get' => array('get'),
+            'post' => array('post'),
+            'put' => array('put'),
+            'delete' => array('delete'),
+            'options' => array('options'),
+            'any' => array('any'),
+        );
+    }
 }

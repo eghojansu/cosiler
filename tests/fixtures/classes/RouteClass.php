@@ -2,7 +2,7 @@
 
 namespace Ekok\Cosiler\Test\Unit\Route;
 
-use EKok\Cosiler\Route;
+use Ekok\Cosiler\Route;
 
 final class RouteClass
 {
@@ -22,7 +22,7 @@ final class RouteClass
         Route\stop_propagation();
     }
 
-    public function anyIndex(string $baz, string $qux)
+    public function anyIndex(string $baz, string $qux, string $quux = null)
     {
         echo "className.$baz.$qux";
         Route\stop_propagation();

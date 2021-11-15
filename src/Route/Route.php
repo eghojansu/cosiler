@@ -179,7 +179,8 @@ function files(string $basePath, string $prefix = '', $request = null)
         throw new \InvalidArgumentException("{$basePath} does not exists");
     }
 
-    $directory = new \RecursiveDirectoryIterator($realpath);
+    $flags = \FilesystemIterator::KEY_AS_PATHNAME | \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS;
+    $directory = new \RecursiveDirectoryIterator($realpath, $flags);
     $iterator = new \RecursiveIteratorIterator($directory);
     $regex = new \RegexIterator($iterator, '/^.+\.php$/i', \RecursiveRegexIterator::GET_MATCH);
 
@@ -189,33 +190,22 @@ function files(string $basePath, string $prefix = '', $request = null)
 
     $cut = \strlen($realpath);
     $prefix = \rtrim($prefix, '/');
+    $result = null;
 
     foreach ($files as $filename) {
         $cut_filename = \substr((string) $filename, $cut);
 
-        if (false === $cut_filename) {
-            continue;
-        }
+        list($method, $path) = routify($cut_filename);
 
-        [$method, $path] = routify($cut_filename);
-
-        if ('/' === $path) {
-            if ($prefix) {
-                $path = $prefix;
-            }
-        } else {
-            $path = $prefix.$path;
-        }
-
-        /** @var mixed $result */
+        $path = '/' === $path ? ($prefix ?: $path) : $prefix . $path;
         $result = handle($method, $path, (string) $filename, $request);
 
         if (null !== $result) {
-            return $result;
+            break;
         }
     }
 
-    return null;
+    return $result;
 }
 
 /**
@@ -237,19 +227,9 @@ function class_name(string $basePath, $className, $request = null): void
     foreach ($methods as $method) {
         $specs = \preg_split('/(?=[A-Z])/', $method->name);
 
+        $path_params = \array_map(fn(\ReflectionParameter $param)  => $param->isOptional() ? "?{{$param->name}}?" : "{{$param->name}}", $method->getParameters());
         $path_segments = \array_map('strtolower', \array_slice($specs, 1));
         $path_segments = \array_filter($path_segments, fn(string $segment) => 'index' !== $segment);
-        $path_params = \array_map(function (\ReflectionParameter $param) {
-            $param_name = $param->getName();
-            $param_name = "{{$param_name}}";
-
-            if ($param->isOptional()) {
-                $param_name = "?{$param_name}?";
-            }
-
-            return $param_name;
-        }, $method->getParameters());
-
         $path_segments = \array_merge($path_segments, $path_params);
 
         \array_unshift($path_segments, $basePath);

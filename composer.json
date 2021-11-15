@@ -21,9 +21,7 @@
         ]
     },
     "autoload-dev": {
-        "psr-4": {
-            "Ekok\\Cosiler\\Tests\\Unit\\": "tests/Unit/"
-        }
+        "classmap": ["tests/fixtures/classes"]
     },
     "authors": [
         {
