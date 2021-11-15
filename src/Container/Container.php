@@ -106,6 +106,70 @@ function clear($key): void
     unset($box->hive[$key], $box->rules[$key], $box->protected[$key], $box->factories[$key]);
 }
 
+function push($key, $value): array
+{
+    $data = get($key);
+
+    if (!\is_array($data)) {
+        $data = (array) $data;
+    }
+
+    $data[] = $value;
+
+    set($key, $data);
+
+    return $data;
+}
+
+function pop($key)
+{
+    $data = get($key);
+
+    if (\is_array($data)) {
+        $value = \array_pop($data);
+
+        set($key, $data);
+
+        return $value;
+    }
+
+    clear($key);
+
+    return $data;
+}
+
+function unshift($key, $value): array
+{
+    $data = get($key);
+
+    if (!\is_array($data)) {
+        $data = (array) $data;
+    }
+
+    \array_unshift($data, $value);
+
+    set($key, $data);
+
+    return $data;
+}
+
+function shift($key)
+{
+    $data = get($key);
+
+    if (\is_array($data)) {
+        $value = \array_shift($data);
+
+        set($key, $data);
+
+        return $value;
+    }
+
+    clear($key);
+
+    return $data;
+}
+
 function protect($key, callable $value): void
 {
     box()->protected[$key] = $value;

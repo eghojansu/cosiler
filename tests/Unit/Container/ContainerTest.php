@@ -66,4 +66,19 @@ final class ContainerTest extends TestCase
         $this->assertSame($foo1, $foo2);
         $this->assertNotSame($bar1, $bar2);
     }
+
+    public function testArrayAction()
+    {
+        $this->assertNull(Container\get('foo'));
+        $this->assertNull(Container\pop('foo'));
+        $this->assertSame(array('bar'), Container\push('foo', 'bar'));
+        $this->assertSame(array('bar', 'baz'), Container\push('foo', 'baz'));
+        $this->assertSame('baz', Container\pop('foo'));
+
+        $this->assertNull(Container\get('bar'));
+        $this->assertNull(Container\shift('bar'));
+        $this->assertSame(array('baz'), Container\unshift('bar', 'baz'));
+        $this->assertSame(array('qux', 'baz'), Container\unshift('bar', 'qux'));
+        $this->assertSame('qux', Container\shift('bar'));
+    }
 }
