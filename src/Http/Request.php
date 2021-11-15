@@ -90,6 +90,13 @@ function content_type(): ?string
     return headers('Content-Type');
 }
 
+function accept(string $mime): bool
+{
+    $accept = headers('Accept') ?? '*/*';
+
+    return $mime === $accept || preg_match('/\b' . preg_quote($mime, '/') . '\b/i', $accept);
+}
+
 /**
  * Returns all the HTTP headers.
  *

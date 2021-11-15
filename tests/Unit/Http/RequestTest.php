@@ -269,4 +269,20 @@ final class RequestTest extends TestCase
         $_SERVER['HTTP_USER_AGENT'] = 'test';
         $this->assertSame('test', Request\user_agent());
     }
+
+    /** @dataProvider acceptProvider */
+    public function testAccept($expected, $mime, $header)
+    {
+        $_SERVER['HTTP_ACCEPT'] = $header;
+
+        $this->assertSame($expected, Request\accept($mime));
+    }
+
+    public function acceptProvider()
+    {
+        return array(
+            'html' => array(true, 'html', 'text/html, application/xhtml+xml, application/xml;q=0.9, image/webp, */*;q=0.8'),
+            'json' => array(true, 'json', 'application/json'),
+        );
+    }
 }
