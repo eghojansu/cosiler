@@ -61,7 +61,7 @@ function flash(?string $key = null)
  */
 function url(?string $path = null): string
 {
-    return \rtrim(\str_replace('\\', '/', \dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/').'/'.\ltrim($path ?? '', '/');
+    return \rtrim(\str_replace('\\', '/', \dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/').'/'.\ltrim($path ?? path(), '/');
 }
 
 /**

@@ -31,7 +31,8 @@ final class HttpTest extends TestCase
 
         Http\session_end();
 
-        $this->assertSame('/foo/', Http\url());
+        $this->assertSame('/foo/bar/baz', Http\url());
+        $this->assertSame('/foo/', Http\url(''));
         $this->assertSame('/foo/bar', Http\url('/bar'));
         $this->assertSame('/bar/baz', Http\path());
 
