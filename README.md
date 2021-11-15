@@ -12,3 +12,9 @@ We copy that concept, copy the source code and adjust it with our coding style.
 - Internal framework state saved in namespaced container hive
 - Remove support for PSR Request Interface and Swoole
 - Autostart session when used in code
+- Template loader
+- Simple bootstrap files loader
+
+---
+
+> Let's utilize the Nature of PHP!

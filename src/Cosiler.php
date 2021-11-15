@@ -4,6 +4,21 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler;
 
+function bootstrap(string $errorFile, string ...$appFiles): void
+{
+    $level = ob_get_level();
+
+    try {
+        walk($appFiles, fn($file) => require $file);
+    } catch (\Throwable $error) {
+        while (ob_get_level() > $level) {
+            ob_end_clean();
+        }
+
+        require $errorFile;
+    }
+}
+
 /**
  * Returns a function that requires the given filename.
  *

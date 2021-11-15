@@ -17,6 +17,7 @@
             "src/Http/Request.php",
             "src/Http/Response.php",
             "src/Route/Route.php",
+            "src/Template/Template.php",
             "src/Cosiler.php"
         ]
     },

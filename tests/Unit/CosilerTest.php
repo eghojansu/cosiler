@@ -130,4 +130,12 @@ final class CosilerTest extends TestCase
         $this->assertSame($expected, $actual);
         $this->assertNull($second);
     }
+
+    /** @runInSeparateProcess */
+    public function testBootstrap()
+    {
+        $this->expectOutputString('Exception thrown while running apps');
+
+        Cosiler\bootstrap(TEST_FIXTURES . '/bootstrap/error.php', TEST_FIXTURES . '/bootstrap/start.php');
+    }
 }
