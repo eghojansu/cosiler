@@ -21,6 +21,7 @@ function box(): \stdClass
         $box = new \stdClass();
         $box->hive = array();
         $box->rules = array();
+        $box->factories = array();
         $box->protected = array();
         $box->prepared = true;
     }
@@ -102,12 +103,20 @@ function clear($key): void
 {
     $box = box();
 
-    unset($box->hive[$key], $box->rules[$key], $box->protected[$key]);
+    unset($box->hive[$key], $box->rules[$key], $box->protected[$key], $box->factories[$key]);
 }
 
 function protect($key, callable $value): void
 {
     box()->protected[$key] = $value;
+}
+
+function factory($key, callable $value): void
+{
+    $box = box();
+
+    $box->rules[$key] = $value;
+    $box->factories[$key] = true;
 }
 
 function make($key, bool $throw = true)
@@ -121,6 +130,10 @@ function make($key, bool $throw = true)
         }
 
         return null;
+    }
+
+    if (isset($box->factories[$key])) {
+        return $rule();
     }
 
     return $box->hive[$key] ?? ($box->hive[$key] = $rule());

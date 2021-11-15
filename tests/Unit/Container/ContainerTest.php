@@ -52,4 +52,18 @@ final class ContainerTest extends TestCase
 
         Container\make('foo');
     }
+
+    public function testFactory()
+    {
+        Container\set('foo', fn() => new \stdClass());
+        Container\factory('bar', fn() => new \stdClass());
+
+        $foo1 = Container\get('foo');
+        $foo2 = Container\get('foo');
+        $bar1 = Container\get('bar');
+        $bar2 = Container\get('bar');
+
+        $this->assertSame($foo1, $foo2);
+        $this->assertNotSame($bar1, $bar2);
+    }
 }
