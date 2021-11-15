@@ -1,7 +1,7 @@
 # CoSiler
 
 We love the concept of [*leocavalcante/siler*](https://github.com/leocavalcante/siler), its aiming an API for declarative programming in PHP.
-We copy that concept, copy the source code and improve it with our coding style.
+We copy that concept, copy the source code and adjust it with our coding style.
 
 ## Difference with Siler
 
