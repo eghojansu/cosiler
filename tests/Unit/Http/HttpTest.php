@@ -80,4 +80,12 @@ final class HttpTest extends TestCase
         $_SERVER['REQUEST_URI'] = '/?foo=bar';
         $this->assertSame('/', Http\path());
     }
+
+    public function testStatus()
+    {
+        $this->assertSame('OK', Http\status(200));
+
+        $this->expectExceptionMessage('Unsupported HTTP code: 999');
+        Http\status(999);
+    }
 }

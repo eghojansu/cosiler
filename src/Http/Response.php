@@ -10,6 +10,12 @@ use Ekok\Cosiler\Encoder\Json;
 use Ekok\Cosiler\Http;
 use Ekok\Cosiler\Http\Request;
 
+function start(int $code = 200, string $mimeType = 'text/html', string $charset = 'utf-8'): void
+{
+    headers_sent() || \header(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1', $code, Http\status($code)));
+    headers_sent() || \header(sprintf('%s: %s;charset=%s', 'Content-Type', $mimeType, $charset));
+}
+
 /**
  * Outputs the given parameters based on a HTTP response.
  *
@@ -22,8 +28,7 @@ use Ekok\Cosiler\Http\Request;
  */
 function output(string $content = '', int $code = 204, string $mimeType = 'text/plain', string $charset = 'utf-8'): int
 {
-    \http_response_code($code);
-    header('Content-Type', sprintf('%s;charset=%s', $mimeType, $charset));
+    start($code, $mimeType, $charset);
 
     return print $content;
 }
