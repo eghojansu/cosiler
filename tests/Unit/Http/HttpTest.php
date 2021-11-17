@@ -9,7 +9,10 @@ final class HttpTest extends TestCase
 {
     protected function setUp(): void
     {
-        $_GET = $_POST = $_REQUEST = $_COOKIE = $_SESSION = ['foo' => 'bar'];
+        $_GET = array('get' => 'foo');
+        $_POST = array('post' => 'foo');
+        $_REQUEST = array('request' => 'foo');
+        $_COOKIE = array('cookie' => 'foo');
 
         $_SERVER['HTTP_HOST'] = 'test:8000';
         $_SERVER['SCRIPT_NAME'] = '/foo/test.php';
@@ -19,13 +22,13 @@ final class HttpTest extends TestCase
     public function testHttp()
     {
         $this->assertSame($_COOKIE, Http\cookie());
-        $this->assertSame('bar', Http\cookie('foo'));
+        $this->assertSame('foo', Http\cookie('cookie'));
         $this->assertSame(null, Http\cookie('bar'));
 
-        $this->assertSame($_SESSION, Http\cookie());
-        $this->assertSame('bar', Http\session('foo'));
+        $this->assertSame(array(), Http\session());
         $this->assertNull(Http\session('bar'));
         $this->assertSame('baz', Http\session('bar', 'baz'));
+        $this->assertSame(array('bar' => 'baz'), Http\session());
         $this->assertSame('baz', Http\flash('bar'));
         $this->assertNull(Http\session('bar'));
 

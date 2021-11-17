@@ -19,19 +19,20 @@ function cookie(?string $key = null)
 /**
  * Get or set a value from the $_SESSION global.
  *
+ * @param mixed $key Session key
  * @param mixed $value The value to be stored
  *
  * @return mixed
  */
-function session(?string $key = null, ...$value)
+function session(?string $key = null, $value = null)
 {
-    if ($value && $key) {
-        (PHP_SESSION_ACTIVE === \session_status() || headers_sent()) || \session_start();
+    (PHP_SESSION_ACTIVE === \session_status() || headers_sent()) || \session_start();
 
-        $_SESSION[$key] = $value[0];
+    if ($key && null !== $value) {
+        $_SESSION[$key] = $value;
     }
 
-    return $key ? ($_SESSION[$key] ?? null) : null;
+    return $key ? ($_SESSION[$key] ?? null) : $_SESSION;
 }
 
 function session_end(): void
