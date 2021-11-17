@@ -210,5 +210,5 @@ function merge(array $config): void
 
 function config(string ...$files): void
 {
-    Cosiler\walk($files, fn($file) => \is_readable($file) && \is_array($config = require $file) && merge($config));
+    Cosiler\walk($files, fn($file) => \is_file($file) && \is_array($config = require $file) && merge($config));
 }

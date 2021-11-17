@@ -17,7 +17,7 @@ function directory(string $directories): void
 function locate(string $template): string
 {
     $directories = Container\co(TEMPLATE_DIRECTORIES) ?? array();
-    $finder = fn($dir) => is_readable($file = $dir . '/' . $template) || is_readable($file = $dir . '/' . $template . '.php') ? $file : null;
+    $finder = fn($dir) => is_file($file = $dir . '/' . $template) || is_file($file = $dir . '/' . $template . '.php') ? $file : null;
     $found = Cosiler\first($directories, $finder);
 
     if (!$found) {
