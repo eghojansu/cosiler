@@ -4,6 +4,7 @@ namespace Ekok\Cosiler\Test\Unit\Http;
 
 use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Http;
+use Ekok\Cosiler\Http\HttpException;
 
 final class HttpTest extends TestCase
 {
@@ -90,5 +91,27 @@ final class HttpTest extends TestCase
 
         $this->expectExceptionMessage('Unsupported HTTP code: 999');
         Http\status(999);
+    }
+
+    /** @dataProvider errorsProvider */
+    public function testErrors(string $expected, string $fn, ...$args)
+    {
+        $this->expectException(HttpException::class);
+        $this->expectExceptionMessage($expected);
+
+        ('Ekok\\Cosiler\\Http\\' . $fn)(...$args);
+    }
+
+    public function errorsProvider()
+    {
+        return array(
+            'general' => array('Internal Server Error', 'error'),
+            'unprocessable' => array('Unprocessable Entity', 'unprocessable'),
+            'not_allowed' => array('Method Not Allowed', 'not_allowed'),
+            'not_found' => array('Not Found', 'not_found'),
+            'forbidden' => array('Forbidden', 'forbidden'),
+            'unauthorized' => array('Unauthorized', 'unauthorized'),
+            'bad_request' => array('Bad Request', 'bad_request'),
+        );
     }
 }

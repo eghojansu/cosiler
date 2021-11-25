@@ -97,7 +97,7 @@ function uri(?string $protocol = null): string
     return $useProtocol.'://'.$withHost.path();
 }
 
-function status(int $code): string
+function status(int $code, bool $throw = true): string
 {
     static $codes = array(
         100 => 'Continue',
@@ -155,10 +155,46 @@ function status(int $code): string
         510 => 'Not Extended',
         511 => 'Network Authentication Required',
     );
+    $unsupported = isset($codes[$code]) ? null : \sprintf('Unsupported HTTP code: %s', $code);
 
-    if (!isset($codes[$code])) {
-        throw new \LogicException(\sprintf('Unsupported HTTP code: %s', $code));
+    if ($unsupported && $throw) {
+        throw new \LogicException($unsupported);
     }
 
-    return $codes[$code];
+    return $codes[$code] ?? $unsupported;
+}
+
+function error(int $code = 500, string $message = null, array $payload = null, array $headers = null): void
+{
+    throw new HttpException($code, $message, $headers);
+}
+
+function unprocessable(string $message = null, array $payload = null, array $headers = null): void
+{
+    throw new HttpException(422, $message, $payload, $headers);
+}
+
+function not_allowed(string $message = null, array $payload = null, array $headers = null): void
+{
+    throw new HttpException(405, $message, $payload, $headers);
+}
+
+function not_found(string $message = null, array $payload = null, array $headers = null): void
+{
+    throw new HttpException(404, $message, $payload, $headers);
+}
+
+function forbidden(string $message = null, array $payload = null, array $headers = null): void
+{
+    throw new HttpException(403, $message, $payload, $headers);
+}
+
+function unauthorized(string $message = null, array $payload = null, array $headers = null): void
+{
+    throw new HttpException(401, $message, $payload, $headers);
+}
+
+function bad_request(string $message = null, array $payload = null, array $headers = null): void
+{
+    throw new HttpException(400, $message, $payload, $headers);
 }

@@ -8,7 +8,10 @@ namespace Ekok\Cosiler\Http\Response;
 
 use Ekok\Cosiler\Encoder\Json;
 use Ekok\Cosiler\Http;
+use Ekok\Cosiler\Http\HttpException;
 use Ekok\Cosiler\Http\Request;
+
+use function PHPUnit\Framework\throwException;
 
 function start(int $code = 200, string $mimeType = 'text/html', string $charset = 'utf-8'): void
 {
@@ -132,12 +135,4 @@ function cors(string $origin = '*', string $headers = 'Content-Type', string $me
     if (Request\method_is('options')) {
         no_content();
     }
-}
-
-/**
- * Sugar for 404 Not found.
- */
-function not_found(string $content = '', string $charset = 'utf-8'): int
-{
-    return output($content, 404, $charset);
 }
