@@ -138,4 +138,13 @@ final class CosilerTest extends TestCase
 
         Cosiler\bootstrap(TEST_FIXTURES . '/bootstrap/error.php', TEST_FIXTURES . '/bootstrap/start.php');
     }
+
+    public function testQuote()
+    {
+        $this->assertSame('"foo"', Cosiler\quote('foo'));
+        $this->assertSame('"foo"."bar"', Cosiler\quote('foo.bar'));
+        $this->assertSame('`foo`.`bar`', Cosiler\quote('foo.bar', '`'));
+        $this->assertSame('[foo]', Cosiler\quote('foo', '[', ']'));
+        $this->assertSame('[foo].[bar]', Cosiler\quote('foo.bar', '[', ']'));
+    }
 }

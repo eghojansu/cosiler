@@ -4,12 +4,14 @@ namespace Ekok\Cosiler\Sql;
 
 use PDO;
 
+use function Ekok\Cosiler\quote;
 use function Ekok\Cosiler\walk;
 
 /**
  * PDO Sql Connection Wrapper
  *
  * @property \PDO $pdo
+ * @property Builder $builder
  * @property array $quotes
  * @property string $name
  * @property string $driver
@@ -24,11 +26,16 @@ class Connection
         private string|null $username = null,
         private string|null $password = null,
         private array|null $options = null,
-    ) {}
+        Builder|null $builder = null,
+    ) {
+        if ($builder) {
+            $this->hive['builder'] = $builder;
+        }
+    }
 
     public function select(string $table, array|string $criteria = null, array $options = null): array|null
     {
-        list($sql, $values) = $this->buildSelect($table, $criteria, $options);
+        list($sql, $values) = $this->builder->select($table, $criteria, $options);
 
         $args = $options['fetch_args'] ?? array();
         $fetch = $options['fetch'] ?? \PDO::FETCH_ASSOC;
@@ -44,7 +51,7 @@ class Connection
 
     public function insert(string $table, array $data, array|string $options = null)
     {
-        list($sql, $values) = $this->buildInsert($table, $data);
+        list($sql, $values) = $this->builder->insert($table, $data);
 
         $query = $this->query($sql, $values, $success);
 
@@ -53,7 +60,7 @@ class Connection
         }
 
         if (!$options || (is_array($options) && !($load = $options['load'] ?? null))) {
-            return true;
+            return $query->rowCount();
         }
 
         if (isset($load)) {
@@ -71,7 +78,7 @@ class Connection
 
     public function update(string $table, array $data, array|string $criteria, array|bool|null $options = false)
     {
-        list($sql, $values) = $this->buildUpdate($table, $data, $criteria);
+        list($sql, $values) = $this->builder->update($table, $data, $criteria);
 
         $query = $this->query($sql, $values, $success);
 
@@ -80,7 +87,7 @@ class Connection
         }
 
         if (false === $options) {
-            return true;
+            return $query->rowCount();
         }
 
         $loadOptions = true === $options ? null : $options;
@@ -90,7 +97,7 @@ class Connection
 
     public function delete(string $table, array|string $criteria): bool|int
     {
-        list($sql, $values) = $this->buildDelete($table, $criteria);
+        list($sql, $values) = $this->builder->delete($table, $criteria);
 
         $query = $this->query($sql, $values, $success);
 
@@ -103,7 +110,7 @@ class Connection
 
     public function insertBatch(string $table, array $data, array|string $criteria = null, array|string $options = null): bool|array
     {
-        list($sql, $values) = $this->buildInsertBatch($table, $data);
+        list($sql, $values) = $this->builder->insertBatch($table, $data);
 
         $query = $this->query($sql, $values, $success);
 
@@ -112,7 +119,7 @@ class Connection
         }
 
         if (!$criteria) {
-            return true;
+            return $query->rowCount();
         }
 
         return $this->select($table, $criteria, $options);
@@ -168,13 +175,7 @@ class Connection
 
     public function quote(string $expr): string
     {
-        if (false === strpos($expr, '.')) {
-            return $expr;
-        }
-
-        list($a, $b) = $this->quotes;
-
-        return $a . implode($b . '.' . $a, explode('.', $expr)) . $b;
+        return quote($expr, ...$this->quotes);
     }
 
     public function getName(): string|null
@@ -184,7 +185,7 @@ class Connection
 
     public function getQuotes(): array
     {
-        return array_slice($this->options['quotes'] ?? array('"', '"'), 0, 2);
+        return array_slice($this->options['quotes'] ?? array(), 0, 2);
     }
 
     public function getDriver(): string
@@ -201,7 +202,7 @@ class Connection
     {
         try {
             $scripts = $this->options['scripts'] ?? array();
-            $options = $this->options['options'] ?? array();
+            $options = $this->options['pdo'] ?? array();
 
             $pdo = new PDO($this->dsn, $this->username, $this->password, $options);
 
@@ -213,56 +214,9 @@ class Connection
         }
     }
 
-    public function buildSelect(string $table, array|string $criteria = null, array $options = null): array
+    public function getBuilder(): Builder
     {
-        if ($options) {
-            extract($options, prefix: 'o_');
-        }
-
-        $alias = $o_alias ?? null;
-        $sub = $o_sub ?? false;
-        $lf = "\n";
-        $top = $lf;
-        $sql = '';
-        $values = array();
-
-        $sql .= $lf . (isset($o_columns) ? $this->buildColumns($o_columns, $sub ? $alias : $table, $lf) : '*');
-        $sql .= $lf . 'FROM ' . ($sub ? '(' . $table . ')' : $this->quote($table));
-
-        if ($alias) {
-            $sql .= $lf . 'AS ' . $this->quote($alias);
-        }
-
-        if (isset($o_joins) && $line = $this->buildJoins($o_joins)) {
-            $sql .= $lf . $line;
-        }
-
-        if ($criteria && $filter = $this->buildCriteria($criteria)) {
-            $sql .= $lf . 'WHERE ' . array_shift($filter);
-
-            array_push($values, ...$filter);
-        }
-
-        if (isset($o_groups) && $line = $this->buildOrders($o_groups)) {
-            $sql .= $lf . 'GROUP BY ' . $line;
-        }
-
-        if (isset($o_havings) && $filter = $this->buildCriteria($o_havings)) {
-            $sql .= $lf . 'HAVING ' . array_shift($filter);
-
-            array_push($values, ...$filter);
-        }
-
-        if (isset($o_orders) && $line = $this->buildOrders($o_orders)) {
-            $sql .= $lf . 'ORDER BY ' . $line;
-        }
-
-        if ($parts = $this->buildOffset($o_limit ?? null, $o_offset ?? null, $sql)) {
-            $sql .= $parts[0];
-            $top .= $parts[1] . $lf;
-        }
-
-        return array('SELECT' . $top . $sql, $values);
+        return new Builder($this->driver, $this->options['format_query'] ?? null, $this->quotes, $this->options['raw_identifier'] ?? null);
     }
 
     public function __clone()

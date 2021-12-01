@@ -118,3 +118,11 @@ function split(string $str, string $symbols = ',;|'): array
 {
     return \array_filter(\array_map('trim', \preg_split('/[' . $symbols . ']/i', $str, 0, PREG_SPLIT_NO_EMPTY)));
 }
+
+function quote(string $text, string $open = '"', string $close = null, string $delimiter = '.'): string
+{
+    $a = $open;
+    $b = $close ?? $a;
+
+    return $a . str_replace($delimiter, $b . $delimiter . $a, $text) . $b;
+}
