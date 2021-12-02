@@ -41,7 +41,7 @@ class Connection
         $fetch = $options['fetch'] ?? \PDO::FETCH_ASSOC;
         $query = $this->query($sql, $values, $success);
 
-        return $success ? ($query->fetchAll($fetch, ...$args) ?: null) : null;
+        return $success ? (false === ($result = $query->fetchAll($fetch, ...$args)) ? null : $result) : null;
     }
 
     public function selectOne(string $table, array|string $criteria = null, array $options = null)
@@ -55,25 +55,23 @@ class Connection
 
         $query = $this->query($sql, $values, $success);
 
-        if (!$success) {
-            return false;
-        }
+        return $success ? (function () use ($query, $options, $table) {
+            if (!$options || (is_array($options) && !($load = $options['load'] ?? null))) {
+                return $query->rowCount();
+            }
 
-        if (!$options || (is_array($options) && !($load = $options['load'] ?? null))) {
-            return $query->rowCount();
-        }
+            if (isset($load)) {
+                $loadOptions = $options;
+            } else {
+                $loadOptions = null;
+                $load = $options;
+            }
 
-        if (isset($load)) {
-            $loadOptions = $options;
-        } else {
-            $loadOptions = null;
-            $load = $options;
-        }
+            $criteria = is_string($load) ? array($load . ' = ?') : (array) $load;
+            $criteria[] = $this->pdo->lastInsertId();
 
-        $criteria = is_string($load) ? array($load . ' = ?') : (array) $load;
-        $criteria[1][] = $this->pdo->lastInsertId();
-
-        return $this->selectOne($table, $criteria, $loadOptions);
+            return $this->selectOne($table, $criteria, $loadOptions);
+        })() : false;
     }
 
     public function update(string $table, array $data, array|string $criteria, array|bool|null $options = false)
@@ -82,17 +80,7 @@ class Connection
 
         $query = $this->query($sql, $values, $success);
 
-        if (!$success) {
-            return false;
-        }
-
-        if (false === $options) {
-            return $query->rowCount();
-        }
-
-        $loadOptions = true === $options ? null : $options;
-
-        return $this->selectOne($table, $criteria, $loadOptions);
+        return $success ? (false === $options ? $query->rowCount() : $this->selectOne($table, $criteria, true === $options ? null : $options)) : false;
     }
 
     public function delete(string $table, array|string $criteria): bool|int
@@ -101,11 +89,7 @@ class Connection
 
         $query = $this->query($sql, $values, $success);
 
-        if (!$success) {
-            return false;
-        }
-
-        return $query->rowCount();
+        return $success ? $query->rowCount() : false;
     }
 
     public function insertBatch(string $table, array $data, array|string $criteria = null, array|string $options = null): bool|array
@@ -114,21 +98,18 @@ class Connection
 
         $query = $this->query($sql, $values, $success);
 
-        if (!$success) {
-            return false;
-        }
-
-        if (!$criteria) {
-            return $query->rowCount();
-        }
-
-        return $this->select($table, $criteria, $options);
+        return $success ? ($criteria ? $this->select($table, $criteria, $options) : $query->rowCount()) : false;
     }
 
     public function query(string $sql, array $values = null, bool &$result = null): \PDOStatement
     {
         $query = $this->pdo->prepare($sql);
-        $result = $query->execute($query);
+
+        if (!$query) {
+            throw new \RuntimeException('Unable to prepare query');
+        }
+
+        $result = $query->execute($values);
 
         return $query;
     }
@@ -152,11 +133,9 @@ class Connection
         $result = $fn($this);
 
         if ($auto) {
-            if ('00000' === $pdo->errorCode()) {
-                $pdo->commit();
-            } else {
-                $pdo->rollBack();
-            }
+            $endTransaction = '00000' === $pdo->errorCode() ? 'commit' : 'rollBack';
+
+            $pdo->$endTransaction();
         }
 
         return $result;
