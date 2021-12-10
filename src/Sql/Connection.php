@@ -16,6 +16,7 @@ use function Ekok\Cosiler\walk;
  * @property string $name
  * @property string $driver
  * @property string $version
+ * @property int $paginationSize
  */
 class Connection
 {
@@ -31,6 +32,46 @@ class Connection
         if ($builder) {
             $this->hive['builder'] = $builder;
         }
+    }
+
+    public function simplePaginate(string $table, int $page = 1, array|string $criteria = null, array $options = null): array
+    {
+        $current_page = max($page, 1);
+        $limit = intval($options['limit'] ?? $this->paginationSize);
+        $offset = ($current_page - 1) * $limit;
+        $subset = $this->select($table, $criteria, compact('limit', 'offset') + ($options ?? array()));
+        $next_page = $current_page + 1;
+        $prev_page = max($current_page - 1, 0);
+        $count = count($subset);
+
+        return compact('subset', 'count', 'current_page', 'next_page', 'prev_page') + array('per_page' => $limit);
+    }
+
+    public function paginate(string $table, int $page = 1, array|string $criteria = null, array $options = null): array
+    {
+        $current_page = max($page, 1);
+        $limit = intval($options['limit'] ?? $this->paginationSize);
+
+        $total = $this->count($table, $criteria, array('limit' => null) + ($options ?? array()));
+        $last_page = intval(ceil($total / $limit));
+
+        $offset = ($current_page - 1) * $limit;
+        $subset = $total > 0 ? $this->select($table, $criteria, compact('limit', 'offset') + ($options ?? array())) : array();
+        $next_page = min($current_page + 1, $last_page);
+        $prev_page = max($current_page - 1, 0);
+        $count = count($subset);
+        $first = $offset + 1;
+        $last = max($first, $offset + $count);
+
+        return compact('subset', 'count', 'current_page', 'next_page', 'prev_page', 'last_page', 'total', 'first', 'last') + array('per_page' => $limit);
+    }
+
+    public function count(string $table, array|string $criteria = null, array $options = null): int
+    {
+        list($sql, $values) = $this->builder->select($table, $criteria, array('orders' => null) + ($options ?? array()));
+        list($sqlCount) = $this->builder->select($sql, null, array('sub' => true, 'alias' => '_c', 'columns' => array('_d' => $this->builder->raw('COUNT(*)'))));
+
+        return intval($this->query($sqlCount, $values, $success)->fetchColumn(0));
     }
 
     public function select(string $table, array|string $criteria = null, array $options = null): array|null
@@ -165,6 +206,11 @@ class Connection
     public function getQuotes(): array
     {
         return array_slice($this->options['quotes'] ?? array(), 0, 2);
+    }
+
+    public function getPaginationSize(): int
+    {
+        return intval($this->options['pagination_size'] ?? 20);
     }
 
     public function getDriver(): string

@@ -39,6 +39,7 @@ SQL
     public function testDbManipulation()
     {
         $this->assertCount(0, $this->db->select('demo'));
+        $this->assertEquals(0, $this->db->count('demo'));
         $this->assertNull($this->db->selectOne('demo'));
 
         $this->assertEquals(1, $this->db->insert('demo', array('name' => 'foo', 'hint' => 'bar')));
@@ -57,12 +58,14 @@ SQL
         ), 'id > 5'));
 
         $this->assertCount(7, $this->db->select('demo'));
+        $this->assertEquals(7, $this->db->count('demo'));
         $this->assertEquals(array('id' => 1, 'name' => 'foo', 'hint' => 'bar'), $this->db->selectOne('demo'));
 
         $this->assertEquals(1, $this->db->update('demo', array('name' => 'qux update'), array('name = ?', 'qux')));
         $this->assertEquals(array('id' => 2, 'name' => 'qux update2', 'hint' => null), $this->db->update('demo', array('name' => 'qux update2'), 'id = 2', true));
 
         $this->assertEquals(4, $this->db->delete('demo', 'id > 3'));
+        $this->assertEquals(3, $this->db->count('demo'));
     }
 
     public function testClone()
@@ -113,5 +116,107 @@ SQL
         });
 
         $this->assertEquals(1, $actual);
+    }
+
+    /** @dataProvider simplePaginateProvider */
+    public function testSimplePaginate($expected, ...$arguments)
+    {
+        $rowCount = $this->db->insertBatch('demo', array(
+            array('name' => 'row1'),
+            array('name' => 'row2'),
+            array('name' => 'row3'),
+            array('name' => 'row4'),
+            array('name' => 'row5'),
+        ));
+
+        $this->assertEquals(5, $rowCount);
+
+        $actual = $this->db->simplePaginate('demo', ...$arguments);
+        $subset = $actual['subset'];
+        unset($actual['subset']);
+
+        $this->assertEquals($expected, $actual);
+        $this->assertCount($expected['count'], $subset);
+    }
+
+    public function simplePaginateProvider()
+    {
+        return array(
+            'default' => array(
+                array('count' => 5, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 20),
+            ),
+            'filtering' => array(
+                array('count' => 1, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 20),
+                1,
+                "name = 'row1'",
+            ),
+            'page 2' => array(
+                array('count' => 0, 'current_page' => 2, 'next_page' => 3, 'prev_page' => 1, 'per_page' => 20),
+                2,
+            ),
+            'perpage = 2' => array(
+                array('count' => 2, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 2),
+                1,
+                null,
+                array('limit' => 2),
+            ),
+            'perpage = 2, page 3' => array(
+                array('count' => 1, 'current_page' => 3, 'next_page' => 4, 'prev_page' => 2, 'per_page' => 2),
+                3,
+                null,
+                array('limit' => 2),
+            ),
+        );
+    }
+
+    /** @dataProvider paginateProvider */
+    public function testPaginate($expected, ...$arguments)
+    {
+        $rowCount = $this->db->insertBatch('demo', array(
+            array('name' => 'row1'),
+            array('name' => 'row2'),
+            array('name' => 'row3'),
+            array('name' => 'row4'),
+            array('name' => 'row5'),
+        ));
+
+        $this->assertEquals(5, $rowCount);
+
+        $actual = $this->db->paginate('demo', ...$arguments);
+        $subset = $actual['subset'];
+        unset($actual['subset']);
+
+        $this->assertEquals($expected, $actual);
+        $this->assertCount($expected['count'], $subset);
+    }
+
+    public function paginateProvider()
+    {
+        return array(
+            'default' => array(
+                array('count' => 5, 'current_page' => 1, 'next_page' => 1, 'prev_page' => 0, 'last_page' => 1, 'total' => 5, 'first' => 1, 'last' => 5, 'per_page' => 20),
+            ),
+            'filtering' => array(
+                array('count' => 1, 'current_page' => 1, 'next_page' => 1, 'prev_page' => 0, 'last_page' => 1, 'total' => 1, 'first' => 1, 'last' => 1, 'per_page' => 20),
+                1,
+                "name = 'row1'",
+            ),
+            'page 2' => array(
+                array('count' => 0, 'current_page' => 2, 'next_page' => 1, 'prev_page' => 1, 'last_page' => 1, 'total' => 5, 'first' => 21, 'last' => 21, 'per_page' => 20),
+                2,
+            ),
+            'perpage = 2' => array(
+                array('count' => 2, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'last_page' => 3, 'total' => 5, 'first' => 1, 'last' => 2, 'per_page' => 2),
+                1,
+                null,
+                array('limit' => 2),
+            ),
+            'perpage = 2, page 3' => array(
+                array('count' => 1, 'current_page' => 3, 'next_page' => 3, 'prev_page' => 2, 'last_page' => 3, 'total' => 5, 'first' => 5, 'last' => 5, 'per_page' => 2),
+                3,
+                null,
+                array('limit' => 2),
+            ),
+        );
     }
 }

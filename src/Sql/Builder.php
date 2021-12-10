@@ -159,7 +159,7 @@ class Builder
         return array($sql, $values);
     }
 
-    public function raw(string $expr, string &$cut = null): bool
+    public function isRaw(string $expr, string &$cut = null): bool
     {
         $raw = str_starts_with($expr, $this->rawIdentifier);
 
@@ -170,9 +170,14 @@ class Builder
         return $raw;
     }
 
+    public function raw(string $expr): string
+    {
+        return $this->rawIdentifier . $expr;
+    }
+
     public function expr(string $expr, string $prefix = null): string
     {
-        return $this->raw($expr, $cut) ? $cut : $this->quote((false === strpos($expr, '.') && $prefix ? $prefix . '.' : null) . $expr);
+        return $this->isRaw($expr, $cut) ? $cut : $this->quote((false === strpos($expr, '.') && $prefix ? $prefix . '.' : null) . $expr);
     }
 
     public function columns(string|array $columns, string $prefix = null, string $separator = ' '): string
