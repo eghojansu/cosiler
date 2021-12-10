@@ -185,27 +185,25 @@ function files(string $basePath, string $prefix = '', $request = null)
     $regex = new \RegexIterator($iterator, '/^.+\.php$/i', \RecursiveRegexIterator::GET_MATCH);
 
     $files = \array_keys(\iterator_to_array($regex));
+    $cut = \strlen($realpath);
+    $withPrefix = \rtrim($prefix, '/');
 
     \sort($files);
-
-    $cut = \strlen($realpath);
-    $prefix = \rtrim($prefix, '/');
-    $result = null;
 
     foreach ($files as $filename) {
         $cut_filename = \substr((string) $filename, $cut);
 
         list($method, $path) = routify($cut_filename);
 
-        $path = '/' === $path ? ($prefix ?: $path) : $prefix . $path;
+        $path = '/' === $path ? ($withPrefix ?: $path) : $withPrefix . $path;
         $result = handle($method, $path, (string) $filename, $request);
 
-        if (null !== $result) {
-            break;
+        if (did_match()) {
+            return $result;
         }
     }
 
-    return $result;
+    return null;
 }
 
 /**

@@ -82,6 +82,34 @@ final class RouteFileTest extends TestCase
      * @runInSeparateProcess
      * @preserveGlobalState  disabled
      */
+    public function testReturns()
+    {
+        $_SERVER['REQUEST_URI'] = '/returns';
+
+        $expected = 'I am "something" to returns';
+        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+
+        $this->assertEquals($expected, $actual);
+        $this->assertTrue(Route\did_match());
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
+    public function testNotFound()
+    {
+        $_SERVER['REQUEST_URI'] = '/not-exists-route';
+        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+
+        $this->assertNull($actual);
+        $this->assertFalse(Route\did_match());
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
     public function testNotExists()
     {
         $this->expectException(\InvalidArgumentException::class);
