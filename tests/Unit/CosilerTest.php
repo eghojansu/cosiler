@@ -147,4 +147,91 @@ final class CosilerTest extends TestCase
         $this->assertSame('[foo]', Cosiler\quote('foo', '[', ']'));
         $this->assertSame('[foo].[bar]', Cosiler\quote('foo.bar', '[', ']'));
     }
+
+    public function testRef()
+    {
+        $source = array(
+            'foo' => array(
+                'bar' => array(
+                    'baz' => 'qux',
+                ),
+                'string' => 'foobar',
+                'tmp' => tmpfile(),
+                'obj' => new class {
+                    public $name = 'AClass';
+                    public function getDescription()
+                    {
+                        return 'Class description';
+                    }
+                },
+            ),
+        );
+        $copy = $source;
+
+        $this->assertEquals($source['foo'], Cosiler\ref('foo', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo'), $parts);
+        $this->assertTrue($exists);
+
+        $this->assertEquals(null, Cosiler\ref('unknown', $source));
+        $this->assertEquals(null, Cosiler\ref(1, $source, false, $exists, $parts));
+        $this->assertEquals(array(1), $parts);
+        $this->assertFalse($exists);
+        $this->assertEquals($copy, $source);
+
+        $this->assertEquals($source['foo']['bar'], Cosiler\ref('foo.bar', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo', 'bar'), $parts);
+        $this->assertTrue($exists);
+
+        $this->assertEquals(null, Cosiler\ref('foo.unknown.member', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo', 'unknown', 'member'), $parts);
+        $this->assertFalse($exists);
+
+        $this->assertEquals('foobar', Cosiler\ref('foo.string', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo', 'string'), $parts);
+        $this->assertTrue($exists);
+
+        $this->assertEquals(null, Cosiler\ref('foo.string.member', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo', 'string', 'member'), $parts);
+        $this->assertFalse($exists);
+
+        $this->assertEquals(null, Cosiler\ref('foo.tmp.member', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo', 'tmp', 'member'), $parts);
+        $this->assertFalse($exists);
+
+        $this->assertEquals('AClass', Cosiler\ref('foo.obj.name', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo', 'obj', 'name'), $parts);
+        $this->assertTrue($exists);
+
+        $this->assertEquals('Class description', Cosiler\ref('foo.obj.description', $source, false, $exists, $parts));
+        $this->assertEquals(array('foo', 'obj', 'description'), $parts);
+        $this->assertTrue($exists);
+
+        // adding reference
+        $add = &Cosiler\ref('add', $source, true, $exists);
+        $add = 'value';
+
+        $this->assertFalse($exists);
+        $this->assertArrayHasKey('add', $source);
+        $this->assertEquals('value', Cosiler\ref('add', $source, false, $exists));
+        $this->assertTrue($exists);
+
+        $member = &Cosiler\ref('foo.new.member', $source, true, $exists);
+        $member = 'added';
+
+        $this->assertFalse($exists);
+        $this->assertArrayHasKey('new', $source['foo']);
+        $this->assertArrayHasKey('member', $source['foo']['new']);
+        $this->assertEquals('added', Cosiler\ref('foo.new.member', $source, false, $exists));
+        $this->assertTrue($exists);
+        $this->assertEquals(array('member' => 'added'), Cosiler\ref('foo.new', $source, false, $exists));
+        $this->assertTrue($exists);
+
+        if (is_resource($source['foo']['tmp'])) {
+            fclose($source['foo']['tmp']);
+        }
+
+        if (is_resource($copy['foo']['tmp'])) {
+            fclose($copy['foo']['tmp']);
+        }
+    }
 }

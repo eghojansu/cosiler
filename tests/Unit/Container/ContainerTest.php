@@ -4,19 +4,13 @@ namespace Ekok\Cosiler\Test\Unit\Container;
 
 use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Container;
+use Ekok\Cosiler\Container\Box;
 
 final class ContainerTest extends TestCase
 {
-    protected function setUp(): void
+    public function setUp(): void
     {
-        Container\box()->prepared = false;
-    }
-
-    public function testBox()
-    {
-        $box = Container\box();
-
-        $this->assertInstanceOf('stdClass', $box);
+        Box::reset();
     }
 
     public function testCo()
@@ -80,5 +74,65 @@ final class ContainerTest extends TestCase
         $this->assertSame(array('baz'), Container\unshift('bar', 'baz'));
         $this->assertSame(array('qux', 'baz'), Container\unshift('bar', 'qux'));
         $this->assertSame('qux', Container\shift('bar'));
+    }
+
+    public function testClearing()
+    {
+        Container\set('foo', array(
+            'bar' => array(
+                'baz' => 'qux',
+            ),
+            'obj' => new class {
+                public $data = 'data';
+                public $data2 = 'data2';
+                public function removeData()
+                {
+                    $this->data = 'removed';
+                }
+            },
+            'tmp' => tmpfile(),
+        ));
+
+        Container\clear('foo.bar.baz');
+        $this->assertArrayNotHasKey('baz', Container\get('foo.bar'));
+
+        $this->assertEquals('data', Container\get('foo.obj.data'));
+        $this->assertEquals('data2', Container\get('foo.obj.data2'));
+
+        Container\clear('foo.obj.data');
+        Container\clear('foo.obj.data2');
+
+        $this->assertEquals('removed', Container\get('foo.obj.data'));
+        $this->assertEquals(null, Container\get('foo.obj.data2'));
+
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Unable to clear value of foo.tmp.member');
+        Container\clear('foo.tmp.member');
+    }
+
+    public function testMassive()
+    {
+        Container\set_all(array(
+            'bar' => 1,
+            'baz' => 2,
+        ));
+
+        $this->assertTrue(Container\has_all('bar', 'baz'));
+        $this->assertFalse(Container\has_all('bar', 'none', 'baz'));
+        $this->assertTrue(Container\has_some('bar', 'none', 'baz'));
+
+        $this->assertEquals(array('bar' => 1, 'MYBAZ' => 2), Container\get_all(array('bar', 'MYBAZ' => 'baz')));
+
+        Container\clear_all('bar', 'baz');
+        $this->assertFalse(Container\has_some('bar', 'baz'));
+
+        Container\set_all(array(
+            'bar' => 1,
+            'baz' => 2,
+        ), 'foo.');
+        $this->assertEquals(array(
+            'bar' => 1,
+            'baz' => 2,
+        ), Container\get('foo'));
     }
 }

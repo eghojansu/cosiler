@@ -8,26 +8,10 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Container;
 
-use Ekok\Cosiler;
+use function Ekok\Cosiler\map;
+use function Ekok\Cosiler\ref;
+use function Ekok\Cosiler\walk;
 
-/**
- * Box storage.
- */
-function box(): \stdClass
-{
-    static $box;
-
-    if (!$box?->prepared) {
-        $box = new \stdClass();
-        $box->hive = array();
-        $box->rules = array();
-        $box->factories = array();
-        $box->protected = array();
-        $box->prepared = true;
-    }
-
-    return $box;
-}
 
 /**
  * Get or Set a value in the container for consiler namespace.
@@ -37,7 +21,7 @@ function box(): \stdClass
  */
 function co($key, ...$value)
 {
-    $box = box();
+    $box = Box::instance();
 
     if ($value) {
         $box->hive['co'][$key] = $value[0];
@@ -53,11 +37,10 @@ function co($key, ...$value)
  */
 function has($key): bool
 {
-    $box = box();
+    $box = Box::instance();
 
     return (
-        isset($box->hive[$key])
-        || \array_key_exists($key, $box->hive)
+        ref($key, $box->hive, false, $exists) || $exists
         || isset($box->rules[$key])
         || isset($box->protected[$key])
     );
@@ -72,9 +55,9 @@ function has($key): bool
  */
 function get($key)
 {
-    $box = box();
+    $box = Box::instance();
 
-    return $box->hive[$key] ?? $box->protected[$key] ?? make($key, false) ?? null;
+    return ref($key, $box->hive) ?? $box->protected[$key] ?? make($key, false) ?? null;
 }
 
 /**
@@ -85,12 +68,13 @@ function get($key)
  */
 function set($key, $value): void
 {
-    $box = box();
+    $box = Box::instance();
 
     if ($value instanceof \Closure || (is_array($value) && \is_callable($value))) {
         $box->rules[$key] = $value;
     } else {
-        $box->hive[$key] = $value;
+        $var = &ref($key, $box->hive, true);
+        $var = $value;
     }
 }
 
@@ -101,9 +85,54 @@ function set($key, $value): void
  */
 function clear($key): void
 {
-    $box = box();
+    $box = Box::instance();
 
-    unset($box->hive[$key], $box->rules[$key], $box->protected[$key], $box->factories[$key]);
+    unset($box->rules[$key], $box->protected[$key], $box->factories[$key]);
+
+    if (false === $pos = strrpos($key, '.')) {
+        unset($box->hive[$key]);
+
+        return;
+    }
+
+    $root = substr($key, 0, $pos);
+    $leaf = substr($key, $pos + 1);
+    $var = &ref($root, $box->hive, true);
+
+    if (is_array($var) || $var instanceof \ArrayAccess) {
+        unset($var[$leaf]);
+    } elseif (is_object($var) && is_callable($remove = array($var, 'remove' . $leaf))) {
+        $remove();
+    } elseif (is_object($var) && isset($var->$leaf)) {
+        unset($var->$leaf);
+    } else {
+        throw new \LogicException(sprintf('Unable to clear value of %s', $key));
+    }
+}
+
+function has_some(...$keys): bool
+{
+    return array_reduce($keys, fn ($found, $key) => $found || has($key));
+}
+
+function has_all(...$keys): bool
+{
+    return array_reduce($keys, fn ($found, $key) => $found && has($key), true);
+}
+
+function get_all(array $keys): array
+{
+    return map($keys, fn($key, $alias) => array(is_numeric($alias) ? $key : $alias, get($key)));
+}
+
+function set_all(array $values, string $prefix = null): void
+{
+    walk($values, fn($value, $key) => set($prefix . $key, $value));
+}
+
+function clear_all(...$keys): void
+{
+    walk($keys, fn($key) => clear($key));
 }
 
 function push($key, $value): array
@@ -172,12 +201,12 @@ function shift($key)
 
 function protect($key, callable $value): void
 {
-    box()->protected[$key] = $value;
+    Box::instance()->protected[$key] = $value;
 }
 
 function factory($key, callable $value): void
 {
-    $box = box();
+    $box = Box::instance();
 
     $box->rules[$key] = $value;
     $box->factories[$key] = true;
@@ -185,7 +214,7 @@ function factory($key, callable $value): void
 
 function make($key, bool $throw = true)
 {
-    $box = box();
+    $box = Box::instance();
     $rule = $box->rules[$key] ?? null;
 
     if (!$rule) {
@@ -200,15 +229,17 @@ function make($key, bool $throw = true)
         return $rule();
     }
 
-    return $box->hive[$key] ?? ($box->hive[$key] = $rule());
+    $instance = &ref($key, $box->hive, true);
+
+    return $instance ?? ($instance = $rule());
 }
 
 function merge(array $config): void
 {
-    Cosiler\walk($config, fn($value, $key) => set($key, $value));
+    walk($config, fn($value, $key) => set($key, $value));
 }
 
 function config(string ...$files): void
 {
-    Cosiler\walk($files, fn($file) => \is_file($file) && \is_array($config = require $file) && merge($config));
+    walk($files, fn($file) => \is_file($file) && \is_array($config = require $file) && merge($config));
 }
