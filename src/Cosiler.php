@@ -126,3 +126,49 @@ function quote(string $text, string $open = '"', string $close = null, string $d
 
     return $a . str_replace($delimiter, $b . $delimiter . $a, $text) . $b;
 }
+
+function &ref($key, array &$var, bool &$exists = null, array &$parts = null)
+{
+    if (
+        ($exists = isset($var[$key]) || array_key_exists($key, $var))
+        || !is_string($key)
+        || false !== strpos($key, '.')
+    ) {
+        $parts = array($key);
+        $var = &$var[$key];
+
+        return $var;
+    }
+
+    $parts = split($key, '.');
+    $nulls = null;
+
+    foreach ($parts as $part) {
+        if (null === $var || is_scalar($var)) {
+            $var = array();
+        }
+
+        $get = null;
+        $found = null;
+
+        if (($arr = is_array($var)) || $var instanceof \ArrayAccess) {
+            $exists = isset($var[$part]) || ($arr && array_key_exists($part, $var));
+            $var = &$var[$part];
+        } elseif (is_object($var) && (isset($var->$part) || method_exists($var, $get = 'get' . $part))) {
+            $exists = $found ?? false;
+
+            if ($get) {
+                $var = $var->$get();
+            } else {
+                $ref = &$ref->$part;
+            }
+        } else {
+            $exists = false;
+            $ref = $nulls;
+
+            break;
+        }
+    }
+
+    return $ref;
+}
