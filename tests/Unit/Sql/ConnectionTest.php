@@ -75,13 +75,6 @@ SQL
         clone $this->db;
     }
 
-    public function testUnknownProperty()
-    {
-        $this->expectExceptionMessage('Undefined property: foo');
-
-        $this->db->foo;
-    }
-
     public function testErrorPdo()
     {
         $this->expectExceptionMessage('Unable to connect database');
@@ -105,7 +98,7 @@ SQL
         $this->expectExceptionMessage('Unable to prepare query');
 
         // failure query
-        $this->db->pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
+        $this->db->getPdo()->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
         $this->assertFalse($this->db->insert('demo', array('foo' => 'bar')));
     }
 
