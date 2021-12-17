@@ -308,3 +308,23 @@ function user_agent(): ?string
 {
     return headers('User-Agent');
 }
+
+function get_int(string $key): int|null
+{
+    return isset($_GET[$key]) && is_numeric($_GET[$key]) && is_int($val = $_GET[$key] * 1) ? $val : null;
+}
+
+function get_number(string $key)
+{
+    return isset($_GET[$key]) && is_numeric($_GET[$key]) ? $_GET[$key] * 1 : null;
+}
+
+function post_int(string $key): int|null
+{
+    return isset($_POST[$key]) && is_numeric($_POST[$key]) && is_int($val = $_POST[$key] * 1) ? $val : null;
+}
+
+function post_number(string $key)
+{
+    return isset($_POST[$key]) && is_numeric($_POST[$key]) ? $_POST[$key] * 1 : null;
+}

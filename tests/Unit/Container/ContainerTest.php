@@ -135,4 +135,15 @@ final class ContainerTest extends TestCase
             'baz' => 2,
         ), Container\get('foo'));
     }
+
+    public function testWith()
+    {
+        Container\set('foo', 'bar');
+
+        $actual = Container\with('foo');
+        $process = Container\with('foo', fn($bar) => $bar . 'baz');
+
+        $this->assertEquals('bar', $actual);
+        $this->assertEquals('barbaz', $process);
+    }
 }

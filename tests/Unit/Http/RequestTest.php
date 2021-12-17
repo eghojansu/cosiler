@@ -285,4 +285,17 @@ final class RequestTest extends TestCase
             'json' => array(true, 'json', 'application/json'),
         );
     }
+
+    public function testGetPostType()
+    {
+        $_GET = $_POST = array('int' => '123', 'number' => '12.34');
+
+        $this->assertSame(123, Request\get_int('int'));
+        $this->assertSame(null, Request\get_int('number'));
+        $this->assertSame(12.34, Request\get_number('number'));
+
+        $this->assertSame(123, Request\post_int('int'));
+        $this->assertSame(null, Request\post_int('number'));
+        $this->assertSame(12.34, Request\post_number('number'));
+    }
 }

@@ -243,3 +243,8 @@ function config(string ...$files): void
 {
     walk($files, fn($file) => \is_file($file) && \is_array($config = require $file) && merge($config));
 }
+
+function with(string $key, \Closure $cb = null)
+{
+    return $cb ? $cb(get($key)) : get($key);
+}
