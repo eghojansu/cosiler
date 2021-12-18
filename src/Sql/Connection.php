@@ -2,10 +2,8 @@
 
 namespace Ekok\Cosiler\Sql;
 
-use PDO;
-
-use function Ekok\Cosiler\quote;
-use function Ekok\Cosiler\walk;
+use function Ekok\Cosiler\Utils\Arr\walk;
+use function Ekok\Cosiler\Utils\Str\quote;
 
 /**
  * PDO Sql Connection Wrapper
@@ -17,27 +15,44 @@ class Connection
         'pagination_size' => 20,
         'format_query' => null,
         'raw_identifier' => null,
+        'table_prefix' => null,
         'quotes' => array(),
         'scripts' => array(),
         'options' => array(),
     );
+
+    /** @var string */
+    private $driver;
+
+    /** @var string|null */
+    private $name;
+
+    /** @var Helper */
+    private $helper;
+
+    /** @var Builder */
+    private $builder;
 
     public function __construct(
         protected string $dsn,
         protected string|null $username = null,
         protected string|null $password = null,
         array|null $options = null,
-        protected Builder|null $builder = null,
     ) {
         if ($options) {
             $this->options = $options + $this->options;
         }
+
+        $this->driver = strstr($this->dsn, ':', true);
+        $this->name = preg_match('/^.+?(?:dbname|database)=(.+?)(?=;|$)/is', $this->dsn, $match) ? str_replace('\\ ', ' ', $match[1]) : null;
+        $this->helper = new Helper($this->options['quotes'], $this->options['raw_identifier'], $this->options['table_prefix']);
+        $this->builder = new Builder($this->helper, $this->driver, $this->options['format_query']);
     }
 
     public function simplePaginate(string $table, int $page = 1, array|string $criteria = null, array $options = null): array
     {
         $current_page = max($page, 1);
-        $limit = intval($options['limit'] ?? $this->getPaginationSize());
+        $limit = intval($options['limit'] ?? $this->options['pagination_size']);
         $offset = ($current_page - 1) * $limit;
         $subset = $this->select($table, $criteria, compact('limit', 'offset') + ($options ?? array()));
         $next_page = $current_page + 1;
@@ -50,7 +65,7 @@ class Connection
     public function paginate(string $table, int $page = 1, array|string $criteria = null, array $options = null): array
     {
         $current_page = max($page, 1);
-        $limit = intval($options['limit'] ?? $this->getPaginationSize());
+        $limit = intval($options['limit'] ?? $this->options['pagination_size']);
 
         $total = $this->count($table, $criteria, array('limit' => null) + ($options ?? array()));
         $last_page = intval(ceil($total / $limit));
@@ -68,17 +83,15 @@ class Connection
 
     public function count(string $table, array|string $criteria = null, array $options = null): int
     {
-        $builder = $this->getBuilder();
-
-        list($sql, $values) = $builder->select($table, $criteria, array('orders' => null) + ($options ?? array()));
-        list($sqlCount) = $builder->select($sql, null, array('sub' => true, 'alias' => '_c', 'columns' => array('_d' => $builder->raw('COUNT(*)'))));
+        list($sql, $values) = $this->builder->select($table, $criteria, array('orders' => null) + ($options ?? array()));
+        list($sqlCount) = $this->builder->select($sql, null, array('sub' => true, 'alias' => '_c', 'columns' => array('_d' => $this->helper->raw('COUNT(*)'))));
 
         return intval($this->query($sqlCount, $values, $success)->fetchColumn(0));
     }
 
     public function select(string $table, array|string $criteria = null, array $options = null): array|null
     {
-        list($sql, $values) = $this->getBuilder()->select($table, $criteria, $options);
+        list($sql, $values) = $this->builder->select($table, $criteria, $options);
 
         $args = $options['fetch_args'] ?? array();
         $fetch = $options['fetch'] ?? \PDO::FETCH_ASSOC;
@@ -94,7 +107,7 @@ class Connection
 
     public function insert(string $table, array $data, array|string $options = null)
     {
-        list($sql, $values) = $this->getBuilder()->insert($table, $data);
+        list($sql, $values) = $this->builder->insert($table, $data);
 
         $query = $this->query($sql, $values, $success);
 
@@ -191,25 +204,39 @@ class Connection
         $mode = $pdo->getAttribute(\PDO::ATTR_ERRMODE);
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_SILENT);
 
-        $out = $pdo->query('SELECT 1 FROM ' . $this->quote($table) . ' LIMIT 1');
+        $out = $pdo->query('SELECT 1 FROM ' . $this->helper->table($table) . ' LIMIT 1');
         $pdo->setAttribute(\PDO::ATTR_ERRMODE, $mode);
 
         return !!$out;
     }
 
-    public function quote(string $expr): string
+    public function getHelper(): Helper
     {
-        return quote($expr, ...$this->getQuotes());
+        return $this->helper;
     }
 
-    public function getQuotes(): array
+    public function setHelper(Helper $helper): static
     {
-        return array_slice($this->options['quotes'] ?? array(), 0, 2);
+        $this->helper = $helper;
+
+        return $this;
     }
 
-    public function getPaginationSize(): int
+    public function getBuilder(): Builder
     {
-        return $this->options['pagination_size'];
+        return $this->builder;
+    }
+
+    public function setBuilder(Builder $builder): static
+    {
+        $this->builder = $builder;
+
+        return $this;
+    }
+
+    public function getOptions(): array
+    {
+        return $this->options;
     }
 
     public function getVersion(): string
@@ -219,24 +246,23 @@ class Connection
 
     public function getDriver(): string
     {
-        return strstr($this->dsn, ':', true);
+        return $this->driver;
     }
 
     public function getName(): string|null
     {
-        return preg_match('/^.+?(?:dbname|database)=(.+?)(?=;|$)/is', $this->dsn, $match) ? str_replace('\\ ', ' ', $match[1]) : null;
+        return $this->name;
     }
 
     public function getPdo(): \PDO
     {
-        return $this->hive['pdo'] ?? ($this->hive['pdo'] = $this->getFreshPdo());
-    }
-
-    public function getBuilder(): Builder
-    {
-        return $this->builder ?? $this->hive['builder'] ?? (
-            $this->hive['builder'] = new Builder($this->getDriver(), $this->options['format_query'], $this->getQuotes(), $this->options['raw_identifier'])
-        );
+        return $this->hive['pdo'] ?? ($this->hive['pdo'] = self::createPDOConnection(
+            $this->dsn,
+            $this->username,
+            $this->password,
+            $this->options['options'],
+            $this->options['scripts'],
+        ));
     }
 
     public function __clone()
@@ -244,19 +270,22 @@ class Connection
         throw new \LogicException('Cloning Connection is prohibited');
     }
 
-    public function getFreshPdo(): \PDO
+    public static function createPDOConnection(
+        string $dsn,
+        string $username = null,
+        string $password = null,
+        array $options = null,
+        array $scripts = null,
+    ): \PDO
     {
         try {
-            $scripts = $this->options['scripts'] ?? array();
-            $options = $this->options['options'] ?? array();
+            $pdo = new \PDO($dsn, $username, $password, $options);
 
-            $pdo = new PDO($this->dsn, $this->username, $this->password, $options);
-
-            walk($scripts, fn($script) => $pdo->exec($script));
+            walk($scripts ?? array(), fn($script) => $pdo->exec($script));
 
             return $pdo;
-        } catch (\Throwable $e) {
-            throw new \RuntimeException('Unable to connect database', 0, $e);
+        } catch (\Throwable $error) {
+            throw new \RuntimeException('Unable to connect database', 0, $error);
         }
     }
 }

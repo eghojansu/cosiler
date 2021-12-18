@@ -18,6 +18,8 @@
             "src/Http/Response.php",
             "src/Route/Route.php",
             "src/Template/Template.php",
+            "src/Utils/Arr.php",
+            "src/Utils/Str.php",
             "src/Cosiler.php"
         ]
     },

@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Template;
 
-use Ekok\Cosiler;
-use Ekok\Cosiler\Container;
+use function Ekok\Cosiler\Container\co;
+use function Ekok\Cosiler\Utils\Arr\first;
+use function Ekok\Cosiler\Utils\Str\split;
 
 define('TEMPLATE_DIRECTORIES', 'template_directories');
 
 function directory(string $directories): void
 {
-    Container\co(TEMPLATE_DIRECTORIES, Cosiler\split($directories));
+    co(TEMPLATE_DIRECTORIES, split($directories));
 }
 
 function locate(string $template): string
 {
-    $directories = Container\co(TEMPLATE_DIRECTORIES) ?? array();
+    $directories = co(TEMPLATE_DIRECTORIES) ?? array();
     $finder = fn($dir) => is_file($file = $dir . '/' . $template) || is_file($file = $dir . '/' . $template . '.php') ? $file : null;
-    $found = Cosiler\first($directories, $finder);
+    $found = first($directories, $finder);
 
     if (!$found) {
         throw new \LogicException(sprintf('Template not found: "%s"', $template));

@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Http\Request;
 
-use Ekok\Cosiler;
-use Ekok\Cosiler\Encoder\Json;
+use function Ekok\Cosiler\Encoder\Json\decode;
+use function Ekok\Cosiler\Utils\Arr\map;
 
 /**
  * Returns the raw HTTP body request.
@@ -45,7 +45,7 @@ function params(string $input = 'php://input'): array
  */
 function json(string $input = 'php://input')
 {
-    return Json\decode(raw($input));
+    return decode(raw($input));
 }
 
 /**
@@ -112,7 +112,7 @@ function headers(string $key = null): array|string|null
         return $_SERVER[$ukey] ?? $_SERVER['HTTP_'.$ukey] ?? null;
     }
 
-    return Cosiler\map($_SERVER, fn ($value, $header) => match (true) {
+    return map($_SERVER, fn ($value, $header) => match (true) {
         'CONTENT_TYPE' === $header => array('Content-Type', $value),
         'CONTENT_LENGTH' === $header => array('Content-Length', $value),
         0 === \strncmp($header, 'HTTP_', 5) => array(\ucwords(\strtolower(\str_replace('_', '-', \substr($header, 5))), '-'), $value),

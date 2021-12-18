@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Route;
 
-use Ekok\Cosiler;
-use Ekok\Cosiler\Container;
-use Ekok\Cosiler\Http;
-use Ekok\Cosiler\Http\Request;
+use function Ekok\Cosiler\Container\co;
+use function Ekok\Cosiler\Http\path;
+use function Ekok\Cosiler\Http\Request\method;
+use function Ekok\Cosiler\Http\Request\method_is;
+use function Ekok\Cosiler\require_fn;
+use function Ekok\Cosiler\Utils\Arr\first;
 
 const BASE_PATH = 'route_base_path';
 const CANCEL = 'route_cancel';
@@ -119,17 +121,17 @@ function handle($method, string $path, $handler, $request = null)
     $call = $handler;
 
     if (is_string($call) && !is_callable($call)) {
-        $call = Cosiler\require_fn($call);
+        $call = require_fn($call);
     }
 
     $method_path = method_path($request);
 
     if (
         \count($method_path) >= 2
-        && (Request\method_is($method, \strval($method_path[0])) || 'any' == $method)
+        && (method_is($method, \strval($method_path[0])) || 'any' == $method)
         && \preg_match($path, \strval($method_path[1]), $params)
     ) {
-        Container\co(DID_MATCH, true);
+        co(DID_MATCH, true);
 
         return $call($params);
     }
@@ -161,7 +163,7 @@ function resource(string $base_path, string $resources_path, ?string $identity_p
         array('delete', '/{'.$id.'}', 'destroy'),
     );
 
-    return Cosiler\first($resources, fn($args) => handle($args[0], $base_path.$args[1], $resources_path.'/'.$args[2].'.php', $request));
+    return first($resources, fn($args) => handle($args[0], $base_path.$args[1], $resources_path.'/'.$args[2].'.php', $request));
 }
 
 /**
@@ -263,7 +265,7 @@ function method_path($request = null): array
         return $request;
     }
 
-    return array(Request\method(), Http\path());
+    return array(method(), path());
 }
 
 /**
@@ -273,7 +275,7 @@ function method_path($request = null): array
  */
 function cancel(): void
 {
-    Container\co(CANCEL, true);
+    co(CANCEL, true);
 }
 
 /**
@@ -281,7 +283,7 @@ function cancel(): void
  */
 function canceled(): bool
 {
-    return (bool) Container\co(CANCEL);
+    return (bool) co(CANCEL);
 }
 
 /**
@@ -289,8 +291,8 @@ function canceled(): bool
  */
 function resume(): void
 {
-    Container\co(STOP_PROPAGATION, false);
-    Container\co(CANCEL, false);
+    co(STOP_PROPAGATION, false);
+    co(CANCEL, false);
 }
 
 /**
@@ -298,7 +300,7 @@ function resume(): void
  */
 function did_match(): bool
 {
-    return (bool) Container\co(DID_MATCH);
+    return (bool) co(DID_MATCH);
 }
 
 /**
@@ -306,7 +308,7 @@ function did_match(): bool
  */
 function purge_match(): void
 {
-    Container\co(DID_MATCH, false);
+    co(DID_MATCH, false);
 }
 
 /**
@@ -314,7 +316,7 @@ function purge_match(): void
  */
 function base(string $path): void
 {
-    Container\co(BASE_PATH, $path);
+    co(BASE_PATH, $path);
 }
 
 /**
@@ -322,7 +324,7 @@ function base(string $path): void
  */
 function is_propagation_stopped(): bool
 {
-    return (bool) Container\co(STOP_PROPAGATION);
+    return (bool) co(STOP_PROPAGATION);
 }
 
 /**
@@ -330,7 +332,7 @@ function is_propagation_stopped(): bool
  */
 function stop_propagation(): void
 {
-    Container\co(STOP_PROPAGATION, true);
+    co(STOP_PROPAGATION, true);
 }
 
 /**
@@ -349,7 +351,7 @@ function regexify(string $path): string
         '(?<$1>$2)',
     );
     $path = \preg_replace($patterns, $replaces, $path);
-    $base = Container\co(BASE_PATH) ?? '';
+    $base = co(BASE_PATH) ?? '';
 
     return "#^{$base}{$path}/?$#";
 }

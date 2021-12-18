@@ -8,10 +8,9 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Container;
 
-use function Ekok\Cosiler\map;
 use function Ekok\Cosiler\ref;
-use function Ekok\Cosiler\walk;
-
+use function Ekok\Cosiler\Utils\Arr\map;
+use function Ekok\Cosiler\Utils\Arr\walk;
 
 /**
  * Get or Set a value in the container for consiler namespace.

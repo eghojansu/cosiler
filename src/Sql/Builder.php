@@ -2,37 +2,20 @@
 
 namespace Ekok\Cosiler\Sql;
 
-use function Ekok\Cosiler\each;
-use function Ekok\Cosiler\quote;
+use function Ekok\Cosiler\Utils\Arr\each;
 
 class Builder
 {
-    private $quotes = array();
-    private $rawIdentifier = '```';
     private $delimiter = ' ';
 
     public function __construct(
+        private Helper $helper,
         private string|null $driver = null,
         private bool|null $format = null,
-        string|array $quotes = null,
-        string $rawIdentifier = null,
     ) {
-        if ($quotes) {
-            $this->quotes = array_slice(is_array($quotes) ? array_values($quotes) : str_split($quotes), 0, 2);
-        }
-
-        if ($rawIdentifier) {
-            $this->rawIdentifier = $rawIdentifier;
-        }
-
         if ($format) {
             $this->delimiter = "\n";
         }
-    }
-
-    public function quote(string $expr): string
-    {
-        return quote($expr, ...$this->quotes);
     }
 
     public function select(string $table, array|string $criteria = null, array $options = null): array
@@ -43,7 +26,8 @@ class Builder
 
         $sub = $o_sub ?? false;
         $alias = $o_alias ?? null;
-        $prefix = $alias ?? ($sub ? null : $table);
+        $_table = $sub ? $table : $this->helper->table($table);
+        $prefix = $alias ?? ($sub ? null : $_table);
         $lf = $this->delimiter;
         $sql = '';
         $values = array();
@@ -53,10 +37,10 @@ class Builder
         }
 
         $sql .= $lf . (isset($o_columns) ? $this->columns($o_columns, $prefix, $lf) : '*');
-        $sql .= $lf . 'FROM ' . ($sub ? '(' . $table . ')' : $this->quote($table));
+        $sql .= $lf . 'FROM ' . ($sub ? '(' . $table . ')' : $this->helper->quote($_table));
 
         if ($alias) {
-            $sql .= $lf . 'AS ' . $this->quote($alias);
+            $sql .= $lf . 'AS ' . $this->helper->quote($alias);
         }
 
         if (isset($o_joins) && $line = $this->joins($o_joins, $lf)) {
@@ -93,7 +77,7 @@ class Builder
     public function insert(string $table, array $data): array
     {
         return array(
-            'INSERT INTO ' . $this->quote($table) . $this->delimiter .
+            'INSERT INTO ' . $this->helper->quote($this->helper->table($table)) . $this->delimiter .
             '(' . $this->columns(array_keys($data), null, $this->delimiter) . ')' . $this->delimiter .
             'VALUES' . $this->delimiter .
             '(' . str_repeat('?, ', count($data) - 1) . '?)',
@@ -110,8 +94,8 @@ class Builder
         array_push($values, ...array_slice($filter, 1));
 
         return array(
-            'UPDATE ' . $this->quote($table) . $this->delimiter .
-            'SET ' . implode(' = ?,' . $this->delimiter, array_map(array($this, 'quote'), array_keys($data))) . ' = ?' .
+            'UPDATE ' . $this->helper->quote($this->helper->table($table)) . $this->delimiter .
+            'SET ' . implode(' = ?,' . $this->delimiter, array_map(array($this->helper, 'quote'), array_keys($data))) . ' = ?' .
             $withFilter,
             $values,
         );
@@ -124,7 +108,7 @@ class Builder
         $withFilter = $filter ? $this->delimiter . 'WHERE ' . $filter : null;
 
         return array(
-            'DELETE FROM ' . $this->quote($table) . $withFilter,
+            'DELETE FROM ' . $this->helper->quote($this->helper->table($table)) . $withFilter,
             $values,
         );
     }
@@ -141,7 +125,7 @@ class Builder
         $columns = array_keys($first);
         $line = '(' . str_repeat('?, ', $firstCount - 1) . '?)';
 
-        $sql = 'INSERT INTO ' . $this->quote($table) . $this->delimiter . '(' . $this->columns($columns) . ')' . $this->delimiter . 'VALUES ' . $line;
+        $sql = 'INSERT INTO ' . $this->helper->quote($this->helper->table($table)) . $this->delimiter . '(' . $this->columns($columns) . ')' . $this->delimiter . 'VALUES ' . $line;
         $values = array();
 
         foreach ($data as $pos => $row) {
@@ -159,25 +143,9 @@ class Builder
         return array($sql, $values);
     }
 
-    public function isRaw(string $expr, string &$cut = null): bool
-    {
-        $raw = str_starts_with($expr, $this->rawIdentifier);
-
-        if ($raw) {
-            $cut = substr($expr, strlen($this->rawIdentifier));
-        }
-
-        return $raw;
-    }
-
-    public function raw(string $expr): string
-    {
-        return $this->rawIdentifier . $expr;
-    }
-
     public function expr(string $expr, string $prefix = null): string
     {
-        return $this->isRaw($expr, $cut) ? $cut : $this->quote((false === strpos($expr, '.') && $prefix ? $prefix . '.' : null) . $expr);
+        return $this->helper->isRaw($expr, $cut) ? $cut : $this->helper->quote((false === strpos($expr, '.') && $prefix ? $prefix . '.' : null) . $expr);
     }
 
     public function columns(string|array $columns, string $prefix = null, string $separator = ' '): string
@@ -187,7 +155,7 @@ class Builder
                 return $this->expr($column, $prefix);
             }
 
-            return $this->expr($column, $prefix) . ' AS ' . $this->quote($alias);
+            return $this->expr($column, $prefix) . ' AS ' . $this->helper->quote($alias);
         }, false));
     }
 

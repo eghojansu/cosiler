@@ -6,16 +6,14 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Http\Response;
 
-use Ekok\Cosiler\Encoder\Json;
-use Ekok\Cosiler\Http;
-use Ekok\Cosiler\Http\HttpException;
-use Ekok\Cosiler\Http\Request;
-
-use function PHPUnit\Framework\throwException;
+use function Ekok\Cosiler\Encoder\Json\encode;
+use function Ekok\Cosiler\Http\Request\method_is;
+use function Ekok\Cosiler\Http\status;
+use function Ekok\Cosiler\Http\url;
 
 function start(int $code = 200, string $mimeType = 'text/html', string $charset = 'utf-8'): void
 {
-    headers_sent() || \header(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1', $code, Http\status($code)));
+    headers_sent() || \header(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1', $code, status($code)));
     headers_sent() || \header(sprintf('%s: %s;charset=%s', 'Content-Type', $mimeType, $charset));
 }
 
@@ -89,7 +87,7 @@ function json_str(string $content, int $code = 200, string $charset = 'utf-8'): 
  */
 function json($content, int $code = 200, string $charset = 'utf-8'): int
 {
-    return json_str(Json\encode($content), $code, $charset);
+    return json_str(encode($content), $code, $charset);
 }
 
 /**
@@ -109,7 +107,7 @@ function header(string $key, string $val, bool $replace = true): void
  */
 function redirect(string $path): void
 {
-    $location = false === strpos($path, '://') ? Http\url($path) : $path;
+    $location = false === strpos($path, '://') ? url($path) : $path;
 
     header('Location', $location);
 }
@@ -132,7 +130,7 @@ function cors(string $origin = '*', string $headers = 'Content-Type', string $me
     header('Access-Control-Allow-Methods', $methods);
     header('Access-Control-Allow-Credentials', $credentials);
 
-    if (Request\method_is('options')) {
+    if (method_is('options')) {
         no_content();
     }
 }

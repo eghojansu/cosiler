@@ -5,6 +5,8 @@ namespace Ekok\Cosiler\Test\Unit\Http\Response;
 use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Http\Response;
 
+use function xdebug_get_headers;
+
 final class ResponseTest extends TestCase
 {
     public function testDefaultOutput()

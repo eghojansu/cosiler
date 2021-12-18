@@ -4,6 +4,7 @@ namespace Ekok\Cosiler\Test\Unit\Sql;
 
 use Ekok\Cosiler\Sql\Builder;
 use Ekok\Cosiler\Sql\Connection;
+use Ekok\Cosiler\Sql\Helper;
 use PHPUnit\Framework\TestCase;
 
 class ConnectionTest extends TestCase
@@ -23,7 +24,7 @@ CREATE TABLE "demo" (
 )
 SQL
             ),
-        ), new Builder('sqlite'));
+        ));
     }
 
     public function testDb()
@@ -211,5 +212,40 @@ SQL
                 array('limit' => 2),
             ),
         );
+    }
+
+    public function testHelperMutation()
+    {
+        $helper = new Helper();
+
+        $this->db->setHelper($helper);
+
+        $this->assertSame($helper, $this->db->getHelper());
+    }
+
+    public function testBuilderMutation()
+    {
+        $builder = new Builder(new Helper());
+
+        $this->db->setBuilder($builder);
+
+        $this->assertSame($builder, $this->db->getBuilder());
+    }
+
+    public function testOptions()
+    {
+        $expected = array(
+            'pagination_size' => 20,
+            'format_query' => null,
+            'raw_identifier' => null,
+            'table_prefix' => null,
+            'quotes' => array(),
+            'scripts' => array(),
+            'options' => array(),
+        );
+        $actual = $this->db->getOptions();
+        $actual['scripts'] = array();
+
+        $this->assertEquals($expected, $actual);
     }
 }

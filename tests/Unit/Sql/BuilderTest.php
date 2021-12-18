@@ -3,6 +3,7 @@
 namespace Ekok\Cosiler\Test\Unit\Sql;
 
 use Ekok\Cosiler\Sql\Builder;
+use Ekok\Cosiler\Sql\Helper;
 use PHPUnit\Framework\TestCase;
 
 class BuilderTest extends TestCase
@@ -12,7 +13,7 @@ class BuilderTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->builder = new Builder();
+        $this->builder = new Builder(new Helper());
     }
 
     /** @dataProvider selectProvider */
@@ -47,7 +48,7 @@ class BuilderTest extends TestCase
                 array(
                     'alias' => 'a',
                     'columns' => array('name', 'hint', 'b_name' => 'b.name', 'c.name'),
-                    'groups' => '```a.name',
+                    'groups' => '"a.name',
                     'having' => array('a.name like ?', '%a%'),
                     'orders' => array('name' => 'desc'),
                     'offset' => 1,
@@ -69,7 +70,7 @@ class BuilderTest extends TestCase
 
     public function testSelectOffset()
     {
-        $builder = new Builder('sqlsrv', null, '[]', '`');
+        $builder = new Builder(new Helper('[]', '`'), 'sqlsrv');
 
         $expected = 'SELECT TOP 5 * FROM [demo] ORDER BY id';
         $this->assertEquals($expected, $builder->select('demo', null, array('limit' => 5, 'orders' => '`id'))[0]);
@@ -204,7 +205,7 @@ class BuilderTest extends TestCase
 
     public function testPlayingFormat()
     {
-        $builder = new Builder(null, true, "'");
+        $builder = new Builder(new Helper("'"), null, true);
         $lf = "\n";
 
         $expected = "SELECT{$lf}*{$lf}FROM 'demo'";
