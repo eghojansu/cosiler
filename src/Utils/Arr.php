@@ -5,7 +5,7 @@ namespace Ekok\Cosiler\Utils\Arr;
 /**
  * Map array to new array pair.
  */
-function map(array $items, callable $map): array
+function map(iterable $items, callable $map): array
 {
     $update = array();
 
@@ -25,7 +25,7 @@ function map(array $items, callable $map): array
 /**
  * Perform callback to array with value and key.
  */
-function each(array $items, callable $callback, bool $keepKeys = true, bool $skipNulls = true): array
+function each(iterable $items, callable $callback, bool $keepKeys = true, bool $skipNulls = true): array
 {
     $update = array();
 
@@ -46,14 +46,14 @@ function each(array $items, callable $callback, bool $keepKeys = true, bool $ski
     return $update;
 }
 
-function walk(array $items, callable $callback): void
+function walk(iterable $items, callable $callback): void
 {
     foreach ($items as $key => $value) {
         $callback($value, $key, $items);
     }
 }
 
-function first(array $items, callable $callback)
+function first(iterable $items, callable $callback)
 {
     foreach ($items as $key => $value) {
         if (null !== $result = $callback($value, $key, $items)) {

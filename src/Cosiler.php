@@ -98,7 +98,7 @@ function &ref($key, array &$ref, bool $add = false, bool &$exists = null, array 
     return $var;
 }
 
-function cast(string $value): int|float|string|array|null
+function cast(string $value): int|float|bool|string|array|null
 {
     $val = trim($value);
 

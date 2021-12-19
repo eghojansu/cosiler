@@ -130,4 +130,15 @@ final class CosilerTest extends TestCase
             fclose($copy['foo']['tmp']);
         }
     }
+
+    public function testCast()
+    {
+        $this->assertSame(1234, Cosiler\cast('1234'));
+        $this->assertSame(83, Cosiler\cast('0123'));
+        $this->assertSame(26, Cosiler\cast('0x1A'));
+        $this->assertSame(255, Cosiler\cast('0b11111111'));
+        $this->assertSame(true, Cosiler\cast('true'));
+        $this->assertSame(null, Cosiler\cast('null'));
+        $this->assertSame('1_234_567', Cosiler\cast('1_234_567'));
+    }
 }

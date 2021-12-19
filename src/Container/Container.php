@@ -56,7 +56,7 @@ function get($key)
 {
     $box = Box::instance();
 
-    return ref($key, $box->hive) ?? $box->protected[$key] ?? make($key, false) ?? null;
+    return $box->protected[$key] ?? ref($key, $box->hive) ?? make($key, false) ?? null;
 }
 
 /**
@@ -70,6 +70,8 @@ function set($key, $value): void
     $box = Box::instance();
 
     if ($value instanceof \Closure || (is_array($value) && \is_callable($value))) {
+        clear($key);
+
         $box->rules[$key] = $value;
     } else {
         $var = &ref($key, $box->hive, true);

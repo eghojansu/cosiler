@@ -2,22 +2,28 @@
 
 namespace Ekok\Cosiler\Sql;
 
+use PDO;
 use function Ekok\Cosiler\cast;
+use function Ekok\Cosiler\Utils\Arr\map;
+use function Ekok\Cosiler\Utils\Arr\each;
 use function Ekok\Cosiler\Utils\Str\case_snake;
 
-class Mapper implements \ArrayAccess, \Iterator
+class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 {
     /** @var \PDOStatement */
     protected $query;
+
+    /** @var array */
+    protected $hive = array();
 
     /** @var int */
     protected $ptr = -1;
 
     /** @var array */
-    protected $row;
+    protected $row = array();
 
     /** @var array */
-    protected $update = array();
+    protected $updates = array();
 
     /** @var array */
     protected $columnsLoad = array();
@@ -28,6 +34,7 @@ class Mapper implements \ArrayAccess, \Iterator
     public function __construct(
         protected Connection $db,
         protected string|null $table = null,
+        protected bool|null $readonly = null,
         protected array|null $keys = null,
         protected array|null $casts = null,
         array|null $columnsLoad = null,
@@ -74,9 +81,14 @@ class Mapper implements \ArrayAccess, \Iterator
         };
     }
 
-    public function getTable(): string
+    public function table(): string
     {
         return $this->table;
+    }
+
+    public function countRow(array|string $criteria = null, array $options = null): int
+    {
+        return $this->db->count($this->table, $criteria, $options);
     }
 
     public function simplePaginate(int $page = 1, array|string $criteria = null, array $options = null): array
@@ -87,11 +99,6 @@ class Mapper implements \ArrayAccess, \Iterator
     public function paginate(int $page = 1, array|string $criteria = null, array $options = null): array
     {
         return $this->db->paginate($this->table, $page, $criteria, $options);
-    }
-
-    public function count(array|string $criteria = null, array $options = null): int
-    {
-        return $this->db->count($this->table, $criteria, $options);
     }
 
     public function select(array|string $criteria = null, array $options = null): array|null
@@ -129,28 +136,77 @@ class Mapper implements \ArrayAccess, \Iterator
         list($sql, $values) = $this->db->getBuilder()->select($this->table, $criteria, $options);
 
         // probably bug will come when query failed to run
-        $this->query = $this->query($sql, $values);
-        $this->row = null;
-        $this->ptr = -1;
-        $this->update = null;
+        $this->query = $this->db->query($sql, $values);
+        $this->hive['criteria'] = $criteria;
+        $this->hive['options'] = $options;
+        $this->hive['count'] = null;
+        $this->rewind();
 
-        return $success ? (false === ($result = $query->fetchAll($fetch, ...$args)) ? null : $result) : null;
-        $this->query =
+        return $this;
     }
 
-    public function current(): mixed
+    public function findOne(array|string $criteria = null, array $options = null): static
     {
-        $row = $this->row;
+        return $this->findAll($table, $criteria, array('limit' => 1) + ($options ?? array()))[0] ?? null;
+    }
 
-        if ($this->columnsLoad && $row) {
-            $row = array_intersect_key($row, $this->columnsLoad);
+    public function count(): int
+    {
+        if (!$this->query) {
+            throw new \LogicException('Please run a query first');
         }
+
+        return $this->hive['count'] ?? ($this->hive['count'] = $this->countRow($this->hive['criteria'], $this->hive['options']));
+    }
+
+    public function cast(): array
+    {
+        static $methods;
+
+        $row = $this->row;
 
         if ($this->columnsIgnore && $row) {
             $row = array_diff_key($row, $this->columnsIgnore);
         }
 
+        if ($this->columnsLoad && $row) {
+            $row = array_intersect_key($row, $this->columnsLoad);
+        }
+
+        if (null === $methods) {
+            $ref = new \ReflectionClass(static::class);
+            $methods = map(
+                $ref->getMethods(ReflectionMethod::IS_PUBLIC),
+                fn($method) => str_starts_with($method, 'get')
+                    && ($name = case_snake(substr($method, 3)))
+                    && (!$this->columnsLoad || isset($this->columnsLoad[$name]))
+                    && (!isset($this->columnsIgnore[$name])) ? array(
+                    case_snake(substr($method, 3)),
+                    $method,
+                ) : null,
+            );
+        }
+
+        if ($methods) {
+            $row += map($methods, fn($method, $name) => array($name, $this->$method()));
+        }
+
         return $row;
+    }
+
+    public function original(): array
+    {
+        return $this->row;
+    }
+
+    public function updates(): array
+    {
+        return $this->updates;
+    }
+
+    public function current(): mixed
+    {
+        return $this;
     }
 
     public function key(): mixed
@@ -160,14 +216,16 @@ class Mapper implements \ArrayAccess, \Iterator
 
     public function next(): void
     {
-        $this->row = $this->query->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT) ?: null;
+        $this->row = $this->query->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT) ?: array();
+        $this->update = array();
         $this->ptr = $this->row ? $this->ptr + 1 : -1;
     }
 
     public function rewind(): void
     {
-        $this->row = $this->query->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_FIRST) ?: null;
-        $this->ptr = $this->row ? 1 : -1;
+        $this->row = $this->query->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_FIRST) ?: array();
+        $this->updates = array();
+        $this->ptr = $this->row ? 0 : -1;
     }
 
     public function valid(): bool
@@ -179,9 +237,9 @@ class Mapper implements \ArrayAccess, \Iterator
     {
         return (
             isset($this->row[$offset])
-            || isset($this->update[$offset])
+            || isset($this->updates[$offset])
             || array_key_exists($offset, $this->row)
-            || array_key_exists($offset, $this->update)
+            || array_key_exists($offset, $this->updates)
             || method_exists($this, 'get' . $offset)
             || method_exists($this, 'is' . $offset)
             || method_exists($this, 'has' . $offset)
@@ -200,8 +258,8 @@ class Mapper implements \ArrayAccess, \Iterator
 
         $this->columnCheck($offset);
 
-        if (isset($this->update[$offset]) || array_key_exists($offset, $this->update)) {
-            return $this->update[$offset];
+        if (isset($this->updates[$offset]) || array_key_exists($offset, $this->updates)) {
+            return $this->updates[$offset];
         }
 
         if (!array_key_exists($offset, $this->row)) {
@@ -221,7 +279,7 @@ class Mapper implements \ArrayAccess, \Iterator
 
         $this->columnCheck($offset);
 
-        $this->update[$offset] = $value;
+        $this->updates[$offset] = $value;
     }
 
     public function offsetUnset(mixed $offset): void
@@ -234,7 +292,12 @@ class Mapper implements \ArrayAccess, \Iterator
 
         $this->columnCheck($offset);
 
-        unset($this->update[$offset]);
+        unset($this->updates[$offset]);
+    }
+
+    public function jsonSerialize(): mixed
+    {
+        return each($this, fn(self $self) => $self->cast());
     }
 
     protected function columnCheck($column): void
