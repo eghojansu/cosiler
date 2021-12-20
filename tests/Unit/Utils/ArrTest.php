@@ -67,4 +67,28 @@ class ArrTest extends TestCase
         $this->assertSame($expected, $actual);
         $this->assertNull($second);
     }
+
+    public function testReduce()
+    {
+        $expected = '1,2,3,4,5';
+        $actual = Arr\reduce(range(1,5), fn($prev, $value, $key) => $prev . ($key > 0 ? ',' : '') . $value);
+
+        $this->assertSame($expected, $actual);
+    }
+
+    public function testMerge()
+    {
+        $expected = array('one' => 4, 'two' => 2);
+        $actual = Arr\merge(array('one' => 1), array('two' => 2, 'one' => 4), null);
+
+        $this->assertSame($expected, $actual);
+    }
+
+    public function testWithout()
+    {
+        $expected = array('one' => 1, 'three' => 3);
+        $actual = Arr\without(array('one' => 1, 'two' => 2, 'three' => 3), 'two');
+
+        $this->assertSame($expected, $actual);
+    }
 }

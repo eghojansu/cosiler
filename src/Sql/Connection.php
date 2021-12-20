@@ -2,8 +2,9 @@
 
 namespace Ekok\Cosiler\Sql;
 
+use function Ekok\Cosiler\Utils\Arr\merge;
 use function Ekok\Cosiler\Utils\Arr\walk;
-use function Ekok\Cosiler\Utils\Str\quote;
+use function Ekok\Cosiler\Utils\Arr\without;
 
 /**
  * PDO Sql Connection Wrapper
@@ -54,7 +55,7 @@ class Connection
         $current_page = max($page, 1);
         $limit = intval($options['limit'] ?? $this->options['pagination_size']);
         $offset = ($current_page - 1) * $limit;
-        $subset = $this->select($table, $criteria, compact('limit', 'offset') + ($options ?? array()));
+        $subset = $this->select($table, $criteria, merge($options, compact('limit', 'offset')));
         $next_page = $current_page + 1;
         $prev_page = max($current_page - 1, 0);
         $count = count($subset);
@@ -67,11 +68,11 @@ class Connection
         $current_page = max($page, 1);
         $limit = intval($options['limit'] ?? $this->options['pagination_size']);
 
-        $total = $this->count($table, $criteria, array('limit' => null) + ($options ?? array()));
+        $total = $this->count($table, $criteria, without($options, 'limit'));
         $last_page = intval(ceil($total / $limit));
 
         $offset = ($current_page - 1) * $limit;
-        $subset = $total > 0 ? $this->select($table, $criteria, compact('limit', 'offset') + ($options ?? array())) : array();
+        $subset = $total > 0 ? $this->select($table, $criteria, merge($options, compact('limit', 'offset'))) : array();
         $next_page = min($current_page + 1, $last_page);
         $prev_page = max($current_page - 1, 0);
         $count = count($subset);
@@ -83,7 +84,7 @@ class Connection
 
     public function count(string $table, array|string $criteria = null, array $options = null): int
     {
-        list($sql, $values) = $this->builder->select($table, $criteria, array('orders' => null) + ($options ?? array()));
+        list($sql, $values) = $this->builder->select($table, $criteria, without($options, 'orders'));
         list($sqlCount) = $this->builder->select($sql, null, array('sub' => true, 'alias' => '_c', 'columns' => array('_d' => $this->helper->raw('COUNT(*)'))));
 
         return intval($this->query($sqlCount, $values, $success)->fetchColumn(0));
@@ -100,12 +101,12 @@ class Connection
         return $success ? (false === ($result = $query->fetchAll($fetch, ...$args)) ? null : $result) : null;
     }
 
-    public function selectOne(string $table, array|string $criteria = null, array $options = null)
+    public function selectOne(string $table, array|string $criteria = null, array $options = null): array|object|null
     {
-        return $this->select($table, $criteria, array('limit' => 1) + ($options ?? array()))[0] ?? null;
+        return $this->select($table, $criteria, merge($options, array('limit' => 1)))[0] ?? null;
     }
 
-    public function insert(string $table, array $data, array|string $options = null)
+    public function insert(string $table, array $data, array|string $options = null): bool|int|array|object|null
     {
         list($sql, $values) = $this->builder->insert($table, $data);
 
@@ -127,16 +128,16 @@ class Connection
             $criteria[] = $this->getPdo()->lastInsertId();
 
             return $this->selectOne($table, $criteria, $loadOptions);
-        })() : false;
+        })() : 0;
     }
 
-    public function update(string $table, array $data, array|string $criteria, array|bool|null $options = false)
+    public function update(string $table, array $data, array|string $criteria, array|bool|null $options = false): bool|int|array|object|null
     {
         list($sql, $values) = $this->getBuilder()->update($table, $data, $criteria);
 
         $query = $this->query($sql, $values, $success);
 
-        return $success ? (false === $options ? $query->rowCount() : $this->selectOne($table, $criteria, true === $options ? null : $options)) : false;
+        return $success ? (false === $options ? $query->rowCount() : $this->selectOne($table, $criteria, true === $options ? null : $options)) : 0;
     }
 
     public function delete(string $table, array|string $criteria): bool|int
@@ -145,16 +146,16 @@ class Connection
 
         $query = $this->query($sql, $values, $success);
 
-        return $success ? $query->rowCount() : false;
+        return $success ? $query->rowCount() : 0;
     }
 
-    public function insertBatch(string $table, array $data, array|string $criteria = null, array|string $options = null): bool|array
+    public function insertBatch(string $table, array $data, array|string $criteria = null, array|string $options = null): bool|int|array|null
     {
         list($sql, $values) = $this->getBuilder()->insertBatch($table, $data);
 
         $query = $this->query($sql, $values, $success);
 
-        return $success ? ($criteria ? $this->select($table, $criteria, $options) : $query->rowCount()) : false;
+        return $success ? ($criteria ? $this->select($table, $criteria, $options) : $query->rowCount()) : 0;
     }
 
     public function query(string $sql, array $values = null, bool &$success = null): \PDOStatement
@@ -196,6 +197,11 @@ class Connection
         }
 
         return $result;
+    }
+
+    public function lastId(string $name = null): string|false
+    {
+        return $this->getPdo()->lastInsertId($name);
     }
 
     public function exists(string $table): bool

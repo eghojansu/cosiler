@@ -36,7 +36,7 @@ class Builder
             throw new \LogicException('Sub query needs an alias');
         }
 
-        $sql .= $lf . (isset($o_columns) ? $this->columns($o_columns, $prefix, $lf) : '*');
+        $sql .= $lf . (isset($o_columns) && $o_columns ? $this->columns($o_columns, $prefix, $lf) : '*');
         $sql .= $lf . 'FROM ' . ($sub ? '(' . $table . ')' : $this->helper->quote($_table));
 
         if ($alias) {

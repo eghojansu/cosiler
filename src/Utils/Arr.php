@@ -63,3 +63,30 @@ function first(iterable $items, callable $callback)
 
     return null;
 }
+
+function reduce(iterable $items, callable $callback, $carry = null, bool $useKey = false)
+{
+    foreach ($items as $key => $value) {
+        $carry = $callback($carry, $useKey ? $key : $value, $useKey ? $value : $key, $items);
+    }
+
+    return $carry;
+}
+
+function merge(array|null ...$arr): array
+{
+    $result = array();
+
+    foreach ($arr as $row) {
+        foreach ($row ?? array() as $key => $value) {
+            $result[$key] = $value;
+        }
+    }
+
+    return $result;
+}
+
+function without(array|null $arr, string|int ...$keys): array
+{
+    return array_diff_key($arr ?? array(), array_fill_keys($keys, null));
+}

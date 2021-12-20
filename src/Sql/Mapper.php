@@ -2,28 +2,28 @@
 
 namespace Ekok\Cosiler\Sql;
 
-use PDO;
 use function Ekok\Cosiler\cast;
 use function Ekok\Cosiler\Utils\Arr\map;
 use function Ekok\Cosiler\Utils\Arr\each;
+use function Ekok\Cosiler\Utils\Arr\first;
+use function Ekok\Cosiler\Utils\Arr\merge;
+use function Ekok\Cosiler\Utils\Arr\reduce;
 use function Ekok\Cosiler\Utils\Str\case_snake;
+use function Ekok\Cosiler\Utils\Str\split;
 
 class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 {
-    /** @var \PDOStatement */
-    protected $query;
-
-    /** @var array */
-    protected $hive = array();
-
     /** @var int */
     protected $ptr = -1;
 
     /** @var array */
-    protected $row = array();
+    protected $rows = array();
 
     /** @var array */
     protected $updates = array();
+
+    /** @var array */
+    protected $keys = array();
 
     /** @var array */
     protected $columnsLoad = array();
@@ -31,17 +31,20 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     /** @var array */
     protected $columnsIgnore = array();
 
+    /** @var array */
+    protected $getters;
+
     public function __construct(
         protected Connection $db,
         protected string|null $table = null,
-        protected bool|null $readonly = null,
-        protected array|null $keys = null,
+        string|array|null $keys = null,
         protected array|null $casts = null,
+        protected bool|null $readonly = null,
         array|null $columnsLoad = null,
         array|null $columnsIgnore = null,
     ) {
         if (!$table) {
-            $this->table = self::resolveTableName();
+            $this->table = case_snake(ltrim(strrchr('\\' . static::class, '\\'), '\\'));
         }
 
         if ($columnsLoad) {
@@ -51,39 +54,15 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
         if ($columnsIgnore) {
             $this->columnsIgnore = array_fill_keys($columnsIgnore, true);
         }
-    }
 
-    public static function resolveTableName(): string
-    {
-        return case_snake(ltrim(strrchr('\\' . static::class, '\\'), '\\'));
-    }
-
-    public static function castTo(string|null $type, string $var): string|int|float|array|null
-    {
-        return match(strtolower($type)) {
-            'array' => array_map('Ekok\\Cosiler\\cast', array_filter(array_map('trim', explode(',', $var)))),
-            'json' => json_decode($var),
-            'int' => filter_var($var, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
-            'float' => filter_var($var, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE),
-            'boolean' => filter_var($var, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
-            'string' => $var,
-            default => cast($var),
-        };
-    }
-
-    public static function castFrom(string $type, string|int|float|array|object|null $var): string|null
-    {
-        return match(strtolower($type)) {
-            'array' => is_array($var) ? implode(',', $var) : null,
-            'json' => is_string($var) ? $var : (is_scalar($var) || null === $var ? null : json_encode($var)),
-            'boolean' => filter_var($var, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ? 1 : 0,
-            default => null === $var ? null : (string) $var,
-        };
+        if ($keys) {
+            $this->keys = map(split($keys), fn($auto, $key) => is_numeric($key) ? array($auto, true) : array($key, !!$auto));
+        }
     }
 
     public function table(): string
     {
-        return $this->table;
+        return $this->db->getHelper()->isRaw($this->table, $table) ? $table : $this->table;
     }
 
     public function countRow(array|string $criteria = null, array $options = null): int
@@ -93,53 +72,72 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
     public function simplePaginate(int $page = 1, array|string $criteria = null, array $options = null): array
     {
-        return $this->db->simplePaginate($this->table, $page, $criteria, $options);
+        $result = $this->db->simplePaginate($this->table, $page, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+
+        if ($result['count']) {
+            $result['subset'] = $this->castOutAll($result['subset']);
+        }
+
+        return $result;
     }
 
     public function paginate(int $page = 1, array|string $criteria = null, array $options = null): array
     {
-        return $this->db->paginate($this->table, $page, $criteria, $options);
+        $result = $this->db->paginate($this->table, $page, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+
+        if ($result['count']) {
+            $result['subset'] = $this->castOutAll($result['subset']);
+        }
+
+        return $result;
     }
 
     public function select(array|string $criteria = null, array $options = null): array|null
     {
-        return $this->db->select($this->table, $criteria, $options);
+        $result = $this->db->select($this->table, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+
+        return $result ? $this->castOutAll($result) : null;
     }
 
-    public function selectOne(array|string $criteria = null, array $options = null)
+    public function selectOne(array|string $criteria = null, array $options = null): array|object|null
     {
-        return $this->db->selectOne($this->table, $criteria, $options);
+        $row = $this->db->selectOne($this->table, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+
+        return $row ? $this->castOutRow($row) : null;
     }
 
-    public function insert(array $data, array|string $options = null)
+    public function insert(array $data, array|string $options = null): bool|int|array|object|null
     {
-        return $this->db->insert($this->table, $data, $options);
+        $this->writeCheck();
+
+        return $this->db->insert($this->table, $this->toSave($data), $options);
     }
 
-    public function update(array $data, array|string $criteria, array|bool|null $options = false)
+    public function update(array $data, array|string $criteria, array|bool|null $options = false): bool|int|array|object|null
     {
-        return $this->db->update($this->table, $data, $criteria, $options);
+        $this->writeCheck();
+
+        return $this->db->update($this->table, $this->toSave($data), $criteria, $options);
     }
 
     public function delete(array|string $criteria): bool|int
     {
+        $this->writeCheck();
+
         return $this->db->delete($this->table, $criteria);
     }
 
-    public function insertBatch(array $data, array|string $criteria = null, array|string $options = null): bool|array
+    public function insertBatch(array $data, array|string $criteria = null, array|string $options = null): bool|int|array|null
     {
-        return $this->db->insertBatch($this->table, $data, $criteria, $options);
+        $this->writeCheck();
+
+        return $this->db->insertBatch($this->table, $this->toSaveAll($data), $criteria, $options);
     }
 
     public function findAll(array|string $criteria = null, array $options = null): static
     {
-        list($sql, $values) = $this->db->getBuilder()->select($this->table, $criteria, $options);
-
-        // probably bug will come when query failed to run
-        $this->query = $this->db->query($sql, $values);
-        $this->hive['criteria'] = $criteria;
-        $this->hive['options'] = $options;
-        $this->hive['count'] = null;
+        $this->rows = $this->db->select($this->table, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+        $this->updates = array();
         $this->rewind();
 
         return $this;
@@ -147,61 +145,136 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
     public function findOne(array|string $criteria = null, array $options = null): static
     {
-        return $this->findAll($table, $criteria, array('limit' => 1) + ($options ?? array()))[0] ?? null;
+        return $this->findAll($criteria, merge($options, array('limit' => 1)));
+    }
+
+    public function find(string|int ...$ids): static
+    {
+        $this->keysCheck($ids);
+
+        $helper = $this->db->getHelper();
+        $criteria = $ids;
+
+        array_unshift($criteria, reduce(
+            $this->keys,
+            fn($prev, $key) => $prev . ($prev ? ' AND ' : '') . $helper->quote($key) . ' = ?',
+            null,
+            true,
+        ));
+
+        return $this->findOne($criteria);
+    }
+
+    public function save(): bool
+    {
+        if ($this->dry()) {
+            throw new \LogicException('No data to be saved');
+        }
+
+        $row = $this->toSave($this->row());
+        $update = $this->toSave($this->changes());
+        $helper = $this->db->getHelper();
+
+        $this->updates = array();
+
+        // updating?
+        if ($this->valid()) {
+            $this->keysCheck();
+
+            $criteria = $this->buildLoadCriteria($row);
+            $saved = $this->db->update($this->table, $update, $criteria) > 0;
+        } else {
+            $saved = $this->db->insert($this->table, $update) > 0;
+            $criteria = $saved && $this->keys && ($auto = first($this->keys, fn($auto, $key) => $auto ? $key : null)) ? $this->buildLoadCriteria(merge($update, array($auto => $this->db->lastId()))) : null;
+        }
+
+        if ($saved && $criteria) {
+            $this->findOne($criteria);
+        }
+
+        return $saved;
+    }
+
+    public function reset(): static
+    {
+        $this->rows = array();
+        $this->updates = array();
+        $this->ptr = -1;
+
+        return $this;
     }
 
     public function count(): int
     {
-        if (!$this->query) {
-            throw new \LogicException('Please run a query first');
-        }
-
-        return $this->hive['count'] ?? ($this->hive['count'] = $this->countRow($this->hive['criteria'], $this->hive['options']));
+        return count($this->rows);
     }
 
-    public function cast(): array
+    public function toArray(): array
     {
-        static $methods;
+        $row = array_replace($this->castOutRow($this->row()), $this->changes());
 
-        $row = $this->row;
-
-        if ($this->columnsIgnore && $row) {
-            $row = array_diff_key($row, $this->columnsIgnore);
-        }
-
-        if ($this->columnsLoad && $row) {
-            $row = array_intersect_key($row, $this->columnsLoad);
-        }
-
-        if (null === $methods) {
+        if (!$this->getters) {
             $ref = new \ReflectionClass(static::class);
-            $methods = map(
-                $ref->getMethods(ReflectionMethod::IS_PUBLIC),
-                fn($method) => str_starts_with($method, 'get')
-                    && ($name = case_snake(substr($method, 3)))
+
+            $this->getters = map(
+                $ref->getMethods(\ReflectionMethod::IS_PUBLIC),
+                fn($method) => (
+                        str_starts_with($method, $accesor = 'get')
+                        && str_starts_with($method, $accesor = 'has')
+                        && str_starts_with($method, $accesor = 'is')
+                    )
+                    && ($name = case_snake(substr($method, strlen($accesor))))
                     && (!$this->columnsLoad || isset($this->columnsLoad[$name]))
-                    && (!isset($this->columnsIgnore[$name])) ? array(
-                    case_snake(substr($method, 3)),
-                    $method,
-                ) : null,
+                    && (!isset($this->columnsIgnore[$name])) ? array($name, $method) : null,
             );
         }
 
-        if ($methods) {
-            $row += map($methods, fn($method, $name) => array($name, $this->$method()));
+        if ($this->getters) {
+            $row += map($this->getters, fn($method, $name) => array($name, $this->$method()));
         }
 
-        return $row;
+        return $this->fixData($row);
     }
 
-    public function original(): array
+    public function fromArray(array $data): static
     {
-        return $this->row;
+        $this->updates[$this->ptr()] = $this->fixData($data);
+
+        return $this;
     }
 
-    public function updates(): array
+    public function row(): array
     {
-        return $this->updates;
+        return $this->rows[$this->ptr] ?? array();
+    }
+
+    public function changes(): array
+    {
+        return $this->updates[$this->ptr()] ?? array();
+    }
+
+    public function all(): array
+    {
+        $ptr = $this->ptr;
+        $data = each($this, fn(self $self) => $self->toArray());
+        $this->ptr = $ptr;
+
+        return $data;
+    }
+
+    public function dirty(): bool
+    {
+        return !$this->dry();
+    }
+
+    public function dry(): bool
+    {
+        return !$this->changes();
+    }
+
+    public function invalid(): bool
+    {
+        return !$this->valid();
     }
 
     public function current(): mixed
@@ -216,30 +289,29 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
     public function next(): void
     {
-        $this->row = $this->query->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_NEXT) ?: array();
-        $this->update = array();
-        $this->ptr = $this->row ? $this->ptr + 1 : -1;
+        $this->ptr++;
     }
 
     public function rewind(): void
     {
-        $this->row = $this->query->fetch(\PDO::FETCH_ASSOC, \PDO::FETCH_ORI_FIRST) ?: array();
-        $this->updates = array();
-        $this->ptr = $this->row ? 0 : -1;
+        $this->ptr = $this->rows ? 0 : -1;
     }
 
     public function valid(): bool
     {
-        return $this->ptr > -1;
+        return isset($this->rows[$this->ptr]);
     }
 
     public function offsetExists(mixed $offset): bool
     {
+        $row = $this->row();
+        $changes = $this->changes();
+
         return (
-            isset($this->row[$offset])
-            || isset($this->updates[$offset])
-            || array_key_exists($offset, $this->row)
-            || array_key_exists($offset, $this->updates)
+            isset($row[$offset])
+            || isset($changes[$offset])
+            || array_key_exists($offset, $row)
+            || array_key_exists($offset, $changes)
             || method_exists($this, 'get' . $offset)
             || method_exists($this, 'is' . $offset)
             || method_exists($this, 'has' . $offset)
@@ -258,15 +330,18 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
         $this->columnCheck($offset);
 
-        if (isset($this->updates[$offset]) || array_key_exists($offset, $this->updates)) {
-            return $this->updates[$offset];
+        $row = $this->row();
+        $changes = $this->changes();
+
+        if (isset($changes[$offset]) || array_key_exists($offset, $changes)) {
+            return $changes[$offset];
         }
 
-        if (!array_key_exists($offset, $this->row)) {
+        if (!array_key_exists($offset, $row)) {
             throw new \LogicException(sprintf('Column not exists: %s', $offset));
         }
 
-        return static::castTo($this->casts[$offset] ?? null, $this->row[$offset]);
+        return $this->castOut($offset, $row[$offset]);
     }
 
     public function offsetSet(mixed $offset, mixed $value): void
@@ -279,7 +354,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
         $this->columnCheck($offset);
 
-        $this->updates[$offset] = $value;
+        $this->updates[$this->ptr()][$offset] = $value;
     }
 
     public function offsetUnset(mixed $offset): void
@@ -292,12 +367,12 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
         $this->columnCheck($offset);
 
-        unset($this->updates[$offset]);
+        unset($this->updates[$this->ptr()][$offset]);
     }
 
     public function jsonSerialize(): mixed
     {
-        return each($this, fn(self $self) => $self->cast());
+        return $this->all();
     }
 
     protected function columnCheck($column): void
@@ -309,5 +384,111 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
         if ($this->columnsLoad && !isset($this->columnsLoad[$column])) {
             throw new \LogicException(sprintf('Column not exists: %s', $column));
         }
+    }
+
+    protected function writeCheck(): void
+    {
+        if ($this->readonly) {
+            throw new \LogicException('This mapper is readonly');
+        }
+    }
+
+    protected function keysCheck(array $ids = null): void
+    {
+        if (!$this->keys) {
+            throw new \LogicException('This mapper has no keys');
+        }
+
+        if (null !== $ids && count($ids) !== count($this->keys)) {
+            throw new \LogicException('Insufficient keys');
+        }
+    }
+
+    protected function fixData(array $data): array
+    {
+        $row = $data;
+
+        if ($this->columnsIgnore && $row) {
+            $row = array_diff_key($row, $this->columnsIgnore);
+        }
+
+        if ($this->columnsLoad && $row) {
+            $row = array_intersect_key($row, $this->columnsLoad);
+        }
+
+        return $row;
+    }
+
+    protected function toSave(array $data): array
+    {
+        return $this->castInRow($this->fixData($data));
+    }
+
+    protected function toSaveAll(array $data): array
+    {
+        return array_map(array($this, 'toSave'), $data);
+    }
+
+    protected function castOutAll(array $rows): array
+    {
+        return array_map(array($this, 'castOutRow'), $rows);
+    }
+
+    protected function castOutRow(array $row): array
+    {
+        return each($row, fn($value, $key) => $this->castOut($key, $value), true, false);
+    }
+
+    protected function castOut(string $column, string|null $var): string|int|float|array|bool|null
+    {
+        $cast = $this->casts[$column] ?? null;
+
+        return match($cast) {
+            'arr', 'array' => array_map('Ekok\\Cosiler\\cast', array_filter(array_map('trim', explode(',', $var)))),
+            'json' => json_decode($var, true),
+            'int', 'integer' => filter_var($var, FILTER_VALIDATE_INT, FILTER_NULL_ON_FAILURE),
+            'float' => filter_var($var, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE),
+            'bool', 'boolean' => filter_var($var, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
+            'str', 'string' => $var,
+            default => null === $var ? null : cast($var),
+        };
+    }
+
+    protected function castInRow(array $row): array
+    {
+        return each($row, fn($value, $key) => $this->castIn($key, $value), true, false);
+    }
+
+    protected function castIn(string $column, string|int|float|bool|array|object|null $var): string|int|float|bool|null
+    {
+        $cast = $this->casts[$column] ?? null;
+
+        return match($cast) {
+            'arr', 'array' => is_array($var) ? implode(',', $var) : null,
+            'json' => is_string($var) ? $var : (is_scalar($var) || null === $var ? null : json_encode($var)),
+            'bool', 'boolean' => filter_var($var, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ? 1 : 0,
+            default => is_scalar($var) || null === $var ? $var : (string) $var,
+        };
+    }
+
+    protected function ptr(): int
+    {
+        return max(0, $this->ptr);
+    }
+
+    protected function buildLoadCriteria(array $row): array
+    {
+        $helper = $this->db->getHelper();
+
+        return reduce($this->keys, static function ($prev, $key) use ($helper, $row) {
+            if ($prev[0]) {
+                $prev[0] .= ' AND ';
+            }
+
+            $prev[0] .= $helper->quote($key) . ' = ?';
+            $prev[] = $row[$key] ?? null;
+
+            return $prev;
+        }, array(''), true);
     }
 }

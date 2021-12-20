@@ -235,14 +235,9 @@ function make($key, bool $throw = true)
     return $instance ?? ($instance = $rule());
 }
 
-function merge(array $config): void
-{
-    walk($config, fn($value, $key) => set($key, $value));
-}
-
 function config(string ...$files): void
 {
-    walk($files, fn($file) => \is_file($file) && \is_array($config = require $file) && merge($config));
+    walk($files, fn($file) => \is_file($file) && \is_array($config = require $file) && set_all($config));
 }
 
 function with(string $key, \Closure $cb = null)
