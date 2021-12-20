@@ -12,15 +12,7 @@ use function Ekok\Cosiler\Utils\Arr\without;
 class Connection
 {
     protected $hive = array();
-    protected $options = array(
-        'pagination_size' => 20,
-        'format_query' => null,
-        'raw_identifier' => null,
-        'table_prefix' => null,
-        'quotes' => array(),
-        'scripts' => array(),
-        'options' => array(),
-    );
+    protected $options = array();
 
     /** @var string */
     private $driver;
@@ -40,46 +32,49 @@ class Connection
         protected string|null $password = null,
         array|null $options = null,
     ) {
-        if ($options) {
-            $this->options = $options + $this->options;
-        }
+        $opt = merge(array(
+            'pagination_size' => 20,
+            'format_query' => null,
+            'raw_identifier' => null,
+            'table_prefix' => null,
+            'quotes' => array(),
+            'scripts' => array(),
+            'options' => array(),
+        ), $options);
 
         $this->driver = strstr($this->dsn, ':', true);
         $this->name = preg_match('/^.+?(?:dbname|database)=(.+?)(?=;|$)/is', $this->dsn, $match) ? str_replace('\\ ', ' ', $match[1]) : null;
-        $this->helper = new Helper($this->options['quotes'], $this->options['raw_identifier'], $this->options['table_prefix']);
-        $this->builder = new Builder($this->helper, $this->driver, $this->options['format_query']);
+        $this->helper = new Helper($opt['quotes'], $opt['raw_identifier'], $opt['table_prefix']);
+        $this->builder = new Builder($this->helper, $this->driver, $opt['format_query']);
+        $this->options = $opt;
     }
 
     public function simplePaginate(string $table, int $page = 1, array|string $criteria = null, array $options = null): array
     {
-        $current_page = max($page, 1);
-        $limit = intval($options['limit'] ?? $this->options['pagination_size']);
-        $offset = ($current_page - 1) * $limit;
-        $subset = $this->select($table, $criteria, merge($options, compact('limit', 'offset')));
-        $next_page = $current_page + 1;
-        $prev_page = max($current_page - 1, 0);
-        $count = count($subset);
-
-        return compact('subset', 'count', 'current_page', 'next_page', 'prev_page') + array('per_page' => $limit);
+        return $this->paginate($table, $page, $criteria, merge($options, array('full' => false)));
     }
 
     public function paginate(string $table, int $page = 1, array|string $criteria = null, array $options = null): array
     {
         $current_page = max($page, 1);
-        $limit = intval($options['limit'] ?? $this->options['pagination_size']);
+        $last_page = $current_page + 1;
+        $per_page = intval($options['limit'] ?? $this->options['pagination_size']);
+        $offset = ($current_page - 1) * $per_page;
+        $total = null;
 
-        $total = $this->count($table, $criteria, without($options, 'limit'));
-        $last_page = intval(ceil($total / $limit));
+        if ($options['full'] ?? true) {
+            $total = $this->count($table, $criteria, without($options, 'limit'));
+            $last_page = intval(ceil($total / $per_page));
+        }
 
-        $offset = ($current_page - 1) * $limit;
-        $subset = $total > 0 ? $this->select($table, $criteria, merge($options, compact('limit', 'offset'))) : array();
+        $subset = null === $total || $total > 0 ? $this->select($table, $criteria, merge($options, array('limit' => $per_page), compact('offset'))) : array();
+        $count = count($subset);
         $next_page = min($current_page + 1, $last_page);
         $prev_page = max($current_page - 1, 0);
-        $count = count($subset);
         $first = $offset + 1;
         $last = max($first, $offset + $count);
 
-        return compact('subset', 'count', 'current_page', 'next_page', 'prev_page', 'last_page', 'total', 'first', 'last') + array('per_page' => $limit);
+        return compact('subset', 'count', 'total', 'current_page', 'next_page', 'prev_page', 'last_page', 'per_page', 'first', 'last');
     }
 
     public function count(string $table, array|string $criteria = null, array $options = null): int
