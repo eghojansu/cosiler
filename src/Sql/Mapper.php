@@ -5,11 +5,11 @@ namespace Ekok\Cosiler\Sql;
 use function Ekok\Cosiler\cast;
 use function Ekok\Cosiler\Utils\Arr\map;
 use function Ekok\Cosiler\Utils\Arr\each;
+use function Ekok\Cosiler\Utils\Arr\ensure;
 use function Ekok\Cosiler\Utils\Arr\first;
 use function Ekok\Cosiler\Utils\Arr\merge;
 use function Ekok\Cosiler\Utils\Arr\reduce;
 use function Ekok\Cosiler\Utils\Str\case_snake;
-use function Ekok\Cosiler\Utils\Str\split;
 
 class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 {
@@ -40,23 +40,23 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
         string|array|null $keys = null,
         protected array|null $casts = null,
         protected bool|null $readonly = null,
-        array|null $columnsLoad = null,
-        array|null $columnsIgnore = null,
+        string|array|null $columnsLoad = null,
+        string|array|null $columnsIgnore = null,
     ) {
         if (!$table) {
             $this->table = case_snake(ltrim(strrchr('\\' . static::class, '\\'), '\\'));
         }
 
         if ($columnsLoad) {
-            $this->columnsLoad = array_fill_keys($columnsLoad, true);
+            $this->columnsLoad = array_fill_keys(ensure($columnsLoad), true);
         }
 
         if ($columnsIgnore) {
-            $this->columnsIgnore = array_fill_keys($columnsIgnore, true);
+            $this->columnsIgnore = array_fill_keys(ensure($columnsIgnore), true);
         }
 
         if ($keys) {
-            $this->keys = map(split($keys), fn($auto, $key) => is_numeric($key) ? array($auto, true) : array($key, !!$auto));
+            $this->keys = map(ensure($keys), fn($auto, $key) => is_numeric($key) ? array($auto, true) : array($key, !!$auto));
         }
     }
 
@@ -72,18 +72,12 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
     public function simplePaginate(int $page = 1, array|string $criteria = null, array $options = null): array
     {
-        $result = $this->db->simplePaginate($this->table, $page, $criteria, merge($options, array('columns' => $this->columnsLoad)));
-
-        if ($result['count']) {
-            $result['subset'] = $this->castOutAll($result['subset']);
-        }
-
-        return $result;
+        return $this->paginate($page, $criteria, merge($options, array('full' => false)));
     }
 
     public function paginate(int $page = 1, array|string $criteria = null, array $options = null): array
     {
-        $result = $this->db->paginate($this->table, $page, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+        $result = $this->db->paginate($this->table, $page, $criteria, merge($options, array('columns' => array_keys($this->columnsLoad))));
 
         if ($result['count']) {
             $result['subset'] = $this->castOutAll($result['subset']);
@@ -94,16 +88,14 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
     public function select(array|string $criteria = null, array $options = null): array|null
     {
-        $result = $this->db->select($this->table, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+        $result = $this->db->select($this->table, $criteria, merge($options, array('columns' => array_keys($this->columnsLoad))));
 
         return $result ? $this->castOutAll($result) : null;
     }
 
     public function selectOne(array|string $criteria = null, array $options = null): array|object|null
     {
-        $row = $this->db->selectOne($this->table, $criteria, merge($options, array('columns' => $this->columnsLoad)));
-
-        return $row ? $this->castOutRow($row) : null;
+        return $this->select($criteria, merge($options, array('limit' => 1)))[0] ?? null;
     }
 
     public function insert(array $data, array|string $options = null): bool|int|array|object|null
@@ -136,7 +128,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
     public function findAll(array|string $criteria = null, array $options = null): static
     {
-        $this->rows = $this->db->select($this->table, $criteria, merge($options, array('columns' => $this->columnsLoad)));
+        $this->rows = $this->db->select($this->table, $criteria, merge($options, array('columns' => array_keys($this->columnsLoad))));
         $this->updates = array();
         $this->rewind();
 
@@ -171,9 +163,10 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
             throw new \LogicException('No data to be saved');
         }
 
+        $this->writeCheck();
+
         $row = $this->toSave($this->row());
         $update = $this->toSave($this->changes());
-        $helper = $this->db->getHelper();
 
         $this->updates = array();
 
@@ -184,8 +177,13 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
             $criteria = $this->buildLoadCriteria($row);
             $saved = $this->db->update($this->table, $update, $criteria) > 0;
         } else {
+            $criteria = null;
             $saved = $this->db->insert($this->table, $update) > 0;
-            $criteria = $saved && $this->keys && ($auto = first($this->keys, fn($auto, $key) => $auto ? $key : null)) ? $this->buildLoadCriteria(merge($update, array($auto => $this->db->lastId()))) : null;
+
+            if ($saved && $this->keys) {
+                $auto = first($this->keys, fn($auto, $key) => $auto ? $key : null);
+                $criteria = $this->buildLoadCriteria(merge($update, $auto ? array($auto => $this->db->lastId()) : array()));
+            }
         }
 
         if ($saved && $criteria) {
@@ -206,34 +204,31 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
     public function count(): int
     {
-        return count($this->rows);
+        return $this->valid() ? count($this->rows) : 0;
     }
 
     public function toArray(): array
     {
-        $row = array_replace($this->castOutRow($this->row()), $this->changes());
-
         if (!$this->getters) {
-            $ref = new \ReflectionClass(static::class);
+            $ref = new \ReflectionClass($this);
 
             $this->getters = map(
                 $ref->getMethods(\ReflectionMethod::IS_PUBLIC),
                 fn($method) => (
-                        str_starts_with($method, $accesor = 'get')
-                        && str_starts_with($method, $accesor = 'has')
-                        && str_starts_with($method, $accesor = 'is')
-                    )
-                    && ($name = case_snake(substr($method, strlen($accesor))))
-                    && (!$this->columnsLoad || isset($this->columnsLoad[$name]))
-                    && (!isset($this->columnsIgnore[$name])) ? array($name, $method) : null,
+                    str_starts_with($method->name, $accesor = 'get')
+                    || str_starts_with($method->name, $accesor = 'has')
+                    || str_starts_with($method->name, $accesor = 'is')
+                ) ? array(case_snake(substr($method->name, strlen($accesor))), $method->name) : null,
             );
         }
+
+        $row = $this->fixData(array_replace($this->castOutRow($this->row()), $this->changes()));
 
         if ($this->getters) {
             $row += map($this->getters, fn($method, $name) => array($name, $this->$method()));
         }
 
-        return $this->fixData($row);
+        return $row;
     }
 
     public function fromArray(array $data): static
@@ -439,7 +434,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
         return each($row, fn($value, $key) => $this->castOut($key, $value), true, false);
     }
 
-    protected function castOut(string $column, string|null $var): string|int|float|array|bool|null
+    protected function castOut(string $column, string|null $var): \DateTime|string|int|float|array|bool|null
     {
         $cast = $this->casts[$column] ?? null;
 
@@ -450,6 +445,7 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
             'float' => filter_var($var, FILTER_VALIDATE_FLOAT, FILTER_NULL_ON_FAILURE),
             'bool', 'boolean' => filter_var($var, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE),
             'str', 'string' => $var,
+            'date', 'datetime' => new \DateTime($var),
             default => null === $var ? null : cast($var),
         };
     }
@@ -467,6 +463,8 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
             'arr', 'array' => is_array($var) ? implode(',', $var) : null,
             'json' => is_string($var) ? $var : (is_scalar($var) || null === $var ? null : json_encode($var)),
             'bool', 'boolean' => filter_var($var, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ? 1 : 0,
+            'date' => $var instanceof \DateTime ? $var->format('Y-m-d') : (is_string($var) ? date('Y-m-d', strtotime($var)) : null),
+            'datetime' => $var instanceof \DateTime ? $var->format('Y-m-d H:i:s') : (is_string($var) ? date('Y-m-d H:i:s', strtotime($var)) : null),
             default => is_scalar($var) || null === $var ? $var : (string) $var,
         };
     }

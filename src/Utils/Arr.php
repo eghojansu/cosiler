@@ -2,6 +2,8 @@
 
 namespace Ekok\Cosiler\Utils\Arr;
 
+use function Ekok\Cosiler\Utils\Str\split;
+
 /**
  * Map array to new array pair.
  */
@@ -89,4 +91,9 @@ function merge(array|null ...$arr): array
 function without(array|null $arr, string|int ...$keys): array
 {
     return array_diff_key($arr ?? array(), array_fill_keys($keys, null));
+}
+
+function ensure(array|string $arr, string $separor = ',;|'): array
+{
+    return is_string($arr) ? split($arr, $separor) : (array) $arr;
 }

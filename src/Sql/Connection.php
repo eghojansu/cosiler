@@ -26,6 +26,9 @@ class Connection
     /** @var Builder */
     private $builder;
 
+    /** @var array */
+    private $maps = array();
+
     public function __construct(
         protected string $dsn,
         protected string|null $username = null,
@@ -231,6 +234,30 @@ class Connection
     public function setBuilder(Builder $builder): static
     {
         $this->builder = $builder;
+
+        return $this;
+    }
+
+    public function map(string $name): Mapper
+    {
+        $setup = $this->maps[$name] ?? null;
+
+        if (!$setup) {
+            throw new \LogicException(sprintf('Mapper is not registered: %s', $name));
+        }
+
+        return new $setup['mapper']($this, ...$setup['arguments']);
+    }
+
+    public function addMap(string $name, string $classTable = null, ...$arguments): static
+    {
+        $mapper = $classTable && class_exists($classTable) ? $classTable : Mapper::class;
+
+        $this->maps[$name] = compact('mapper', 'arguments');
+
+        if (Mapper::class === $mapper) {
+            array_unshift($this->maps[$name]['arguments'], $classTable ?? $name);
+        }
 
         return $this;
     }

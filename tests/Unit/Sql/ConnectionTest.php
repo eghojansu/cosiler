@@ -5,6 +5,8 @@ namespace Ekok\Cosiler\Test\Unit\Sql;
 use Ekok\Cosiler\Sql\Builder;
 use Ekok\Cosiler\Sql\Connection;
 use Ekok\Cosiler\Sql\Helper;
+use Ekok\Cosiler\Sql\Mapper;
+use Ekok\Cosiler\Test\Unit\Mapper\UserMap;
 use PHPUnit\Framework\TestCase;
 
 class ConnectionTest extends TestCase
@@ -137,25 +139,25 @@ SQL
     {
         return array(
             'default' => array(
-                array('count' => 5, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 20, 'total' => null, 'last_page' => 2, 'first' => 1, 'last' => 2),
+                array('count' => 5, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 20, 'total' => null, 'last_page' => 2, 'first' => 1, 'last' => 5),
             ),
             'filtering' => array(
-                array('count' => 1, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 20, 'total' => null, 'last_page' => 2, 'first' => 1, 'last' => 2),
+                array('count' => 1, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 20, 'total' => null, 'last_page' => 2, 'first' => 1, 'last' => 1),
                 1,
                 "name = 'row1'",
             ),
             'page 2' => array(
-                array('count' => 0, 'current_page' => 2, 'next_page' => 3, 'prev_page' => 1, 'per_page' => 20, 'total' => null, 'last_page' => 3, 'first' => 1, 'last' => 5),
+                array('count' => 0, 'current_page' => 2, 'next_page' => 3, 'prev_page' => 1, 'per_page' => 20, 'total' => null, 'last_page' => 3, 'first' => 21, 'last' => 21),
                 2,
             ),
             'perpage = 2' => array(
-                array('count' => 2, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 2, 'total' => null, 'last_page' => 3, 'first' => 1, 'last' => 2),
+                array('count' => 2, 'current_page' => 1, 'next_page' => 2, 'prev_page' => 0, 'per_page' => 2, 'total' => null, 'last_page' => 2, 'first' => 1, 'last' => 2),
                 1,
                 null,
                 array('limit' => 2),
             ),
             'perpage = 2, page 3' => array(
-                array('count' => 1, 'current_page' => 3, 'next_page' => 4, 'prev_page' => 2, 'per_page' => 2, 'total' => null, 'last_page' => 4, 'first' => 5, 'last' => 6),
+                array('count' => 1, 'current_page' => 3, 'next_page' => 4, 'prev_page' => 2, 'per_page' => 2, 'total' => null, 'last_page' => 4, 'first' => 5, 'last' => 5),
                 3,
                 null,
                 array('limit' => 2),
@@ -247,5 +249,36 @@ SQL
         $actual['scripts'] = array();
 
         $this->assertEquals($expected, $actual);
+    }
+
+    public function testMap()
+    {
+        $this->db->getPdo()->exec(UserMap::tableSchema());
+
+        $this->db->addMap('demo');
+        $this->db->addMap('user', UserMap::class);
+
+        $demo = $this->db->map('demo');
+
+        $this->assertInstanceOf(Mapper::class, $demo);
+        $this->assertCount(0, $demo);
+        $this->assertSame('demo', $demo->table());
+        $this->assertTrue($demo->fromArray(array('name' => 'foo'))->save());
+
+        $user = $this->db->map('user');
+
+        $this->assertInstanceOf(UserMap::class, $user);
+        $this->assertCount(0, $user);
+        $this->assertSame('user_map', $user->table());
+        $this->assertTrue($user->fromArray(UserMap::generateRow('foo'))->save());
+        $this->assertCount(1, $user);
+    }
+
+    public function testUnregisteredMap()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Mapper is not registered: demo');
+
+        $this->db->map('demo');
     }
 }

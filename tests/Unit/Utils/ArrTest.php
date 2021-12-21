@@ -91,4 +91,14 @@ class ArrTest extends TestCase
 
         $this->assertSame($expected, $actual);
     }
+
+    public function testEnsure()
+    {
+        $expected = array(1, 2, 3);
+        $actual = Arr\ensure('1,2,3,');
+        $actual2 = Arr\ensure($expected);
+
+        $this->assertSame($expected, $actual);
+        $this->assertSame($expected, $actual2);
+    }
 }

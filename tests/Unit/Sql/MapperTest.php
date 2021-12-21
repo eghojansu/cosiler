@@ -5,6 +5,7 @@ namespace Ekok\Cosiler\Test\Unit\Sql;
 use Ekok\Cosiler\Sql\Mapper;
 use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Sql\Connection;
+use Ekok\Cosiler\Test\Unit\Mapper\UserMap;
 
 class MapperTest extends TestCase
 {
@@ -23,7 +24,12 @@ CREATE TABLE "demo" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "name" VARCHAR(64) NOT NULL,
     "hint" VARCHAR(255) NULL
-)
+);
+CREATE TABLE "composite_key" (
+    "key1" VARCHAR(64) NOT NULL,
+    "key2" VARCHAR(64) NOT NULL,
+    "hint" VARCHAR(255) NULL
+);
 SQL
             ),
         ));
@@ -92,5 +98,121 @@ SQL
         $this->assertCount(4, $page2['subset']);
         $this->assertCount(4, $rows);
         $this->assertSame(1, $row['id']);
+    }
+
+    public function testUsageCompositKey()
+    {
+        $mapper = new Mapper($this->db, 'composite_key', array(
+            'key1' => false,
+            'key2' => false,
+        ));
+        $data = array(
+            'key1' => 'foo',
+            'key2' => 'bar',
+            'hint' => 'hint',
+        );
+
+        $this->assertTrue($mapper->fromArray($data)->save());
+        $this->assertCount(1, $mapper);
+    }
+
+    public function testUsageClass()
+    {
+        $this->db->getPdo()->exec(UserMap::tableSchema());
+
+        $mapper = new UserMap($this->db);
+        $foo = UserMap::generateRow('foo');
+        $foo['name'] = 'update';
+        $foo['value'] = 'update';
+        $foo['active'] = true;
+        $foo['prop_date'] = new \DateTime($foo['prop_date']);
+        $foo['prop_datetime'] = new \DateTime($foo['prop_datetime']);
+        unset($foo['ignored_column']);
+
+        $this->assertSame('user_map', $mapper->table());
+        $this->assertCount(0, $mapper);
+        $this->assertTrue($mapper->fromArray($foo)->save());
+        $this->assertCount(1, $mapper);
+
+        $this->assertTrue(isset($mapper['value']));
+        $this->assertTrue(isset($mapper['active']));
+        $this->assertSame(null, $mapper['value']);
+
+        $mapper['value'] = 'update';
+        $mapper['name'] = 'update';
+
+        $this->assertSame('update', $mapper['value']);
+        $this->assertSame('update', $mapper['name']);
+        $this->assertEquals($foo, $mapper->toArray());
+
+        unset($mapper['value']);
+        $this->assertSame(null, $mapper['value']);
+    }
+
+    public function testDrySaving()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('No data to be saved');
+
+        $this->mapper->save();
+    }
+
+    public function testGetInvalidProperty()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Column not exists: foo');
+
+        $this->mapper['foo'];
+    }
+
+    public function testWriteCheck()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('This mapper is readonly');
+
+        $this->db->getPdo()->exec(UserMap::tableSchema());
+
+        $mapper = new UserMap($this->db, true);
+        $mapper->fromArray(UserMap::generateRow('foo'))->save();
+    }
+
+    public function testColumnIgnoringCheck()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Column access is forbidden: ignored_column');
+
+        $this->db->getPdo()->exec(UserMap::tableSchema());
+
+        $mapper = new UserMap($this->db);
+        $mapper['ignored_column'] = 'set';
+    }
+
+    public function testColumnExcludedCheck()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Column not exists: excluded');
+
+        $this->db->getPdo()->exec(UserMap::tableSchema());
+
+        $mapper = new UserMap($this->db);
+        $mapper['excluded'] = 'set';
+    }
+
+    public function testNoKeysMapperCheck()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('This mapper has no keys');
+
+        $mapper = new Mapper($this->db, 'demo');
+        $mapper->find(1);
+    }
+
+    public function testInsufficientKeysCheck()
+    {
+        $this->expectException('LogicException');
+        $this->expectExceptionMessage('Insufficient keys');
+
+        $mapper = new Mapper($this->db, 'demo', array('foo', 'bar'));
+        $mapper->find(1);
     }
 }

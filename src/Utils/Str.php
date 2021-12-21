@@ -9,7 +9,7 @@ function fixslashes(string $str): string
 
 function split(string $str, string $symbols = ',;|'): array
 {
-    return \array_filter(\array_map('trim', \preg_split('/[' . $symbols . ']/i', $str, 0, PREG_SPLIT_NO_EMPTY)));
+    return \array_filter(\array_map('Ekok\\Cosiler\\cast', \preg_split('/[' . $symbols . ']/i', $str, 0, PREG_SPLIT_NO_EMPTY)));
 }
 
 function quote(string $text, string $open = '"', string $close = null, string $delimiter = '.'): string
