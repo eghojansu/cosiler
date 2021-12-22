@@ -91,4 +91,14 @@ class StrTest extends TestCase
         $this->assertNotEquals(Str\random(), Str\random());
         $this->assertNotEquals(Str\random(), Str\random());
     }
+
+    public function testRandomUp()
+    {
+        $this->assertNotEquals(Str\random_up(), Str\random_up());
+        $this->assertNotEquals(Str\random_up(), Str\random_up());
+        $this->assertNotEquals(Str\random_up(), Str\random_up());
+        $this->assertNotEquals(Str\random_up(), Str\random_up());
+        $this->assertNotEquals(Str\random_up(), Str\random_up());
+        $this->assertNotEquals(Str\random_up(), Str\random_up());
+    }
 }

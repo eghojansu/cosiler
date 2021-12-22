@@ -44,3 +44,8 @@ function random(int $len = 8, string $salt = null): string
 
     return substr($uid, 0, $min);
 }
+
+function random_up(int $len = 8, string $salt = null): string
+{
+    return strtoupper(random($len, $salt));
+}
