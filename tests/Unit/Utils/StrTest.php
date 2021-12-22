@@ -81,4 +81,14 @@ class StrTest extends TestCase
             array('camelCase', 'Camel_Case'),
         );
     }
+
+    public function testRandom()
+    {
+        $this->assertNotEquals(Str\random(), Str\random());
+        $this->assertNotEquals(Str\random(), Str\random());
+        $this->assertNotEquals(Str\random(), Str\random());
+        $this->assertNotEquals(Str\random(), Str\random());
+        $this->assertNotEquals(Str\random(), Str\random());
+        $this->assertNotEquals(Str\random(), Str\random());
+    }
 }
