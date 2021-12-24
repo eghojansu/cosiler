@@ -6,6 +6,15 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Http;
 
+use function Ekok\Cosiler\Container\co;
+use function Ekok\Cosiler\Utils\Str\fixslashes;
+
+const BASE_PATH = 'http_base_path';
+const ENTRY_FILE = 'http_entry_file';
+const HTTP_SCHEME = 'http_scheme';
+const HTTP_HOST = 'http_host';
+const HTTP_PORT = 'http_port';
+
 /**
  * Get a value from the $_COOKIE global.
  *
@@ -57,11 +66,78 @@ function flash(?string $key = null)
     return $value;
 }
 
+function is_builtin(): bool
+{
+    return 'cli-server' === PHP_SAPI;
+}
+
+function set_base_path(string $base): void
+{
+    co(BASE_PATH, $base);
+}
+
+function base_path(): string
+{
+    return co(BASE_PATH) ?? co(BASE_PATH, is_builtin() ? '' : fixslashes(\dirname($_SERVER['SCRIPT_NAME'])));
+}
+
+function set_entry(string $entry): void
+{
+    co(ENTRY_FILE, $entry);
+}
+
+function entry(bool $prefix = false): string
+{
+    $entry = co(ENTRY_FILE) ?? co(ENTRY_FILE, is_builtin() ? '' : \basename($_SERVER['SCRIPT_NAME']));
+
+    return $prefix ? '/' . $entry : $entry;
+}
+
+function set_scheme(string $scheme): void
+{
+    co(HTTP_SCHEME, $scheme);
+}
+
+function scheme(): string
+{
+    return co(HTTP_SCHEME) ?? co(HTTP_SCHEME, ($_SERVER['HTTPS'] ?? '') ? 'https' : 'http');
+}
+
+function set_host(string $host): void
+{
+    co(HTTP_HOST, $host);
+}
+
+function host(): string
+{
+    return co(HTTP_HOST) ?? co(HTTP_HOST, $_SERVER['HTTP_HOST'] ?? '');
+}
+
+function set_port(string|int $port): void
+{
+    co(HTTP_PORT, $port);
+}
+
+function port(bool $prefix = false): string
+{
+    $port = intval(co(HTTP_PORT) ?? co(HTTP_PORT, $_SERVER['SERVER_PORT'] ?? ''));
+
+    return $prefix ? (in_array($port, array(80, 443)) ? '' : ':' . $port) : $port;
+}
+
+function base_url(string $path = null): string
+{
+    return base_path() . ($path ? '/' . ltrim($path) : '/');
+}
+
 /**
  * Returns a path based on the projects base url.
  */
-function url(?string $path = null): string
+function url(string $path = null): string
 {
+    $url = ($entry = entry()) ? '/' . $entry :
+
+    return base_path() . $url;
     return \rtrim(\str_replace('\\', '/', \dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/').'/'.\ltrim($path ?? path(), '/');
 }
 
@@ -70,31 +146,18 @@ function url(?string $path = null): string
  */
 function path(): string
 {
-    // NOTE: When using built-in server with a router script, SCRIPT_NAME will be same as the REQUEST_URI
-    $scriptName = PHP_SAPI === 'cli-server' ? '' : ($_SERVER['SCRIPT_NAME'] ?? '');
-    $requestUri = $_SERVER['REQUEST_URI'] ?? '';
+    $uri = \rawurldecode(\strstr(($_SERVER['REQUEST_URI'] ?? '') . '?', '?', true));
+    $base = base_path();
 
-    $queryString = \strpos($requestUri, '?');
-    $requestUri = false === $queryString ? $requestUri : \substr($requestUri, 0, $queryString);
-    $requestUri = \rawurldecode($requestUri);
-    $scriptPath = \str_replace('\\', '/', \dirname($scriptName));
-
-    if ('' === \str_replace('/', '', $scriptPath)) {
-        return '/'.\ltrim($requestUri, '/');
-    }
-
-    return '/'.\ltrim(\preg_replace("#^{$scriptPath}#", '', $requestUri, 1), '/');
+    return '/' . \ltrim('' === $base ? $uri : \preg_replace("#^{$base}#", '', $uri, 1), '/');
 }
 
 /**
  * Get the absolute project's URI.
  */
-function uri(?string $protocol = null): string
+function uri(): string
 {
-    $useProtocol = $protocol ?? (($_SERVER['HTTPS'] ?? '') ? 'https' : 'http');
-    $withHost = $_SERVER['HTTP_HOST'] ?? '';
-
-    return $useProtocol.'://'.$withHost.path();
+    return scheme() . '://' . host() . port(true) .path();
 }
 
 function status(int $code, bool $throw = true): string
