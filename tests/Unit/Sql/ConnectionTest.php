@@ -2,20 +2,22 @@
 
 namespace Ekok\Cosiler\Test\Unit\Sql;
 
-use Ekok\Cosiler\Sql\Builder;
-use Ekok\Cosiler\Sql\Connection;
 use Ekok\Cosiler\Sql\Helper;
 use Ekok\Cosiler\Sql\Mapper;
-use Ekok\Cosiler\Test\Unit\Mapper\UserMap;
-use PHPUnit\Framework\TestCase;
+use Ekok\Cosiler\Sql\Builder;
+use Ekok\Cosiler\Sql\Connection;
+use Ekok\Cosiler\Test\Fixture\Mapper\UserMap;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-class ConnectionTest extends TestCase
+class ConnectionTest extends ScopedTestCase
 {
     /** @var Connection */
     private $db;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
+        parent::setUp();
+
         $this->db = new Connection('sqlite::memory:', null, null, array(
             'scripts' => array(
                 <<<'SQL'

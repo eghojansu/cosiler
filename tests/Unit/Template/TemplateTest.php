@@ -7,7 +7,7 @@ use Ekok\Cosiler\Template;
 
 final class TemplateTest extends TestCase
 {
-    protected function setUp(): void
+    public function setUp(): void
     {
         Template\directory(TEST_FIXTURES . '/templates');
     }

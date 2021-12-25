@@ -1,6 +1,6 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Route;
+namespace Ekok\Cosiler\Test\Fixture\Route;
 
 use Ekok\Cosiler\Route;
 

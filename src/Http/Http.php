@@ -14,6 +14,7 @@ const ENTRY_FILE = 'http_entry_file';
 const HTTP_SCHEME = 'http_scheme';
 const HTTP_HOST = 'http_host';
 const HTTP_PORT = 'http_port';
+const ASSET_PREFIX = 'http_asset_prefix';
 
 /**
  * Get a value from the $_COOKIE global.
@@ -76,9 +77,19 @@ function set_base_path(string $base): void
     co(BASE_PATH, $base);
 }
 
-function base_path(): string
+function base_path(string $path = null, bool $entry = false): string
 {
-    return co(BASE_PATH) ?? co(BASE_PATH, is_builtin() ? '' : fixslashes(\dirname($_SERVER['SCRIPT_NAME'])));
+    $str = co(BASE_PATH) ?? co(BASE_PATH, is_builtin() ? '' : fixslashes(\dirname($_SERVER['SCRIPT_NAME'])));
+
+    if ($entry) {
+        $str .= entry(true);
+    }
+
+    if ($path) {
+        $str .= '/' . \ltrim($path, '/');
+    }
+
+    return $str;
 }
 
 function set_entry(string $entry): void
@@ -98,9 +109,11 @@ function set_scheme(string $scheme): void
     co(HTTP_SCHEME, $scheme);
 }
 
-function scheme(): string
+function scheme(bool $suffix = false): string
 {
-    return co(HTTP_SCHEME) ?? co(HTTP_SCHEME, ($_SERVER['HTTPS'] ?? '') ? 'https' : 'http');
+    $scheme = co(HTTP_SCHEME) ?? co(HTTP_SCHEME, ($_SERVER['HTTPS'] ?? '') ? 'https' : 'http');
+
+    return $suffix ? $scheme . '://' : $scheme;
 }
 
 function set_host(string $host): void
@@ -110,7 +123,7 @@ function set_host(string $host): void
 
 function host(): string
 {
-    return co(HTTP_HOST) ?? co(HTTP_HOST, $_SERVER['HTTP_HOST'] ?? '');
+    return strstr((co(HTTP_HOST) ?? co(HTTP_HOST, $_SERVER['HTTP_HOST'] ?? 'localhost')) . ':', ':', true);
 }
 
 function set_port(string|int $port): void
@@ -118,16 +131,31 @@ function set_port(string|int $port): void
     co(HTTP_PORT, $port);
 }
 
-function port(bool $prefix = false): string
+function port(bool $prefix = false): string|int
 {
-    $port = intval(co(HTTP_PORT) ?? co(HTTP_PORT, $_SERVER['SERVER_PORT'] ?? ''));
+    $port = co(HTTP_PORT) ?? co(HTTP_PORT, $_SERVER['SERVER_PORT'] ?? '');
 
-    return $prefix ? (in_array($port, array(80, 443)) ? '' : ':' . $port) : $port;
+    return $prefix ? (\in_array(\intval($port), array(0, 80, 443)) ? '' : ':' . $port) : $port;
 }
 
-function base_url(string $path = null): string
+function set_asset(string $path): void
 {
-    return base_path() . ($path ? '/' . ltrim($path) : '/');
+    co(ASSET_PREFIX, '/' . trim($path, '/'));
+}
+
+function asset(string $path): string
+{
+    return base_url(base_path(co(ASSET_PREFIX) . $path), true);
+}
+
+function path(string $path = null): string
+{
+    return base_path($path, true);
+}
+
+function base_url(string $path = null, bool $prefixed = false): string
+{
+    return scheme(true) . host() . port(true) . ($prefixed ? $path : base_path($path));
 }
 
 /**
@@ -135,29 +163,7 @@ function base_url(string $path = null): string
  */
 function url(string $path = null): string
 {
-    $url = ($entry = entry()) ? '/' . $entry :
-
-    return base_path() . $url;
-    return \rtrim(\str_replace('\\', '/', \dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/').'/'.\ltrim($path ?? path(), '/');
-}
-
-/**
- * Get the current HTTP path info.
- */
-function path(): string
-{
-    $uri = \rawurldecode(\strstr(($_SERVER['REQUEST_URI'] ?? '') . '?', '?', true));
-    $base = base_path();
-
-    return '/' . \ltrim('' === $base ? $uri : \preg_replace("#^{$base}#", '', $uri, 1), '/');
-}
-
-/**
- * Get the absolute project's URI.
- */
-function uri(): string
-{
-    return scheme() . '://' . host() . port(true) .path();
+    return base_url(path($path), true);
 }
 
 function status(int $code, bool $throw = true): string

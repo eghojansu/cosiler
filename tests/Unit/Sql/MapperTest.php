@@ -3,11 +3,11 @@
 namespace Ekok\Cosiler\Test\Unit\Sql;
 
 use Ekok\Cosiler\Sql\Mapper;
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Sql\Connection;
-use Ekok\Cosiler\Test\Unit\Mapper\UserMap;
+use Ekok\Cosiler\Test\Fixture\Mapper\UserMap;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-class MapperTest extends TestCase
+class MapperTest extends ScopedTestCase
 {
     /** @var Connection */
     private $db;
@@ -17,6 +17,8 @@ class MapperTest extends TestCase
 
     public function setUp(): void
     {
+        parent::setUp();
+
         $this->db = new Connection('sqlite::memory:', null, null, array(
             'scripts' => array(
                 <<<'SQL'

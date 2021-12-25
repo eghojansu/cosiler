@@ -2,14 +2,14 @@
 
 namespace Ekok\Cosiler\Test\Unit\Route;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Route;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
 /**
  * @runTestsInSeparateProcesses
  * @preserveGlobalState disabled
  */
-final class RouteUtf8Test extends TestCase
+final class RouteUtf8Test extends ScopedTestCase
 {
     public function testUtf8A()
     {

@@ -4,15 +4,17 @@ namespace Ekok\Cosiler\Test\Unit\Sql;
 
 use Ekok\Cosiler\Sql\Builder;
 use Ekok\Cosiler\Sql\Helper;
-use PHPUnit\Framework\TestCase;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-class BuilderTest extends TestCase
+class BuilderTest extends ScopedTestCase
 {
     /** @var Builder */
     private $builder;
 
-    protected function setUp(): void
+    public function setUp(): void
     {
+        parent::setUp();
+
         $this->builder = new Builder(new Helper());
     }
 

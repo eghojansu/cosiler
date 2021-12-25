@@ -1,6 +1,6 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Mapper;
+namespace Ekok\Cosiler\Test\Fixture\Mapper;
 
 use Ekok\Cosiler\Sql\Mapper;
 use Ekok\Cosiler\Sql\Connection;

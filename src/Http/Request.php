@@ -9,7 +9,34 @@ declare(strict_types=1);
 namespace Ekok\Cosiler\Http\Request;
 
 use function Ekok\Cosiler\Encoder\Json\decode;
+use function Ekok\Cosiler\Http\base_path;
+use function Ekok\Cosiler\Http\url;
 use function Ekok\Cosiler\Utils\Arr\map;
+
+/**
+ * Get the current HTTP path info.
+ */
+function path(): string
+{
+    $uri = \rawurldecode(\strstr(($_SERVER['REQUEST_URI'] ?? '') . '?', '?', true));
+    $base = base_path();
+
+    return '/' . \ltrim('' === $base ? $uri : \preg_replace("#^{$base}#", '', $uri, 1), '/');
+}
+
+/**
+ * Get the absolute project's URI.
+ */
+function uri(): string
+{
+    $uri = url(path());
+
+    if ($_GET) {
+        $uri .= '?' . http_build_query($_GET);
+    }
+
+    return $uri;
+}
 
 /**
  * Returns the raw HTTP body request.
@@ -283,20 +310,16 @@ function recommended_locale(string $default = ''): string
 
 /**
  * Look up for Bearer Authorization token.
- *
- * @param null $request
  */
-function bearer($request = null): ?string
+function bearer(): ?string
 {
-    return \sscanf(authorization_header($request), 'Bearer %s', $token) > 0 ? $token : null;
+    return \sscanf(authorization_header() ?? '', 'Bearer %s', $token) > 0 ? $token : null;
 }
 
 /**
  * Returns the Authorization HTTP header.
- *
- * @param null $request
  */
-function authorization_header($request = null): ?string
+function authorization_header(): ?string
 {
     return headers('Authorization');
 }

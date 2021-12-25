@@ -3,17 +3,22 @@
 namespace Ekok\Cosiler\Test\Unit\Route;
 
 use EKok\Cosiler\Route;
-use PHPUnit\Framework\TestCase;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
+use Ekok\Cosiler\Test\Fixture\Route\RouteClass;
 
-class RouteClassNameTest extends TestCase
+class RouteClassNameTest extends ScopedTestCase
 {
-    protected function setUp(): void
+    public function setUp(): void
     {
+        parent::setUp();
+
         Route\purge_match();
     }
 
     public function tearDown(): void
     {
+        parent::tearDown();
+
         Route\resume();
     }
 
@@ -23,6 +28,16 @@ class RouteClassNameTest extends TestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/class-name';
         Route\class_name('/class-name', RouteClass::class);
+    }
+
+    public function testNotFound()
+    {
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/class-name/none';
+
+        $actual = Route\class_name('/class-name', RouteClass::class);
+
+        $this->assertNull($actual);
     }
 
     /**

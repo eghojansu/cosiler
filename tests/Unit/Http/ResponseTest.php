@@ -2,12 +2,12 @@
 
 namespace Ekok\Cosiler\Test\Unit\Http\Response;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Http\Response;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
 use function xdebug_get_headers;
 
-final class ResponseTest extends TestCase
+final class ResponseTest extends ScopedTestCase
 {
     public function testDefaultOutput()
     {
@@ -102,7 +102,7 @@ final class ResponseTest extends TestCase
 
         if (function_exists('xdebug_get_headers')) {
             $headers = xdebug_get_headers();
-            $this->assertContains('Location: /foo/bar', $headers);
+            $this->assertContains('Location: http://localhost/foo/index.php/bar', $headers);
         } else {
             $this->assertTrue(true);
         }

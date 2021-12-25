@@ -2,10 +2,10 @@
 
 namespace Ekok\Cosiler\Test\Unit\Route;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Route;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-final class RouteFileTest extends TestCase
+final class RouteFileTest extends ScopedTestCase
 {
     /**
      * @runInSeparateProcess

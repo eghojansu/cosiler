@@ -2,14 +2,16 @@
 
 namespace Ekok\Cosiler\Test\Unit\Http;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Http;
 use Ekok\Cosiler\Http\HttpException;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-final class HttpTest extends TestCase
+final class HttpTest extends ScopedTestCase
 {
-    protected function setUp(): void
+    public function setUp(): void
     {
+        parent::setUp();
+
         $_GET = array('get' => 'foo');
         $_POST = array('post' => 'foo');
         $_REQUEST = array('request' => 'foo');
@@ -33,56 +35,38 @@ final class HttpTest extends TestCase
         $this->assertSame('baz', Http\flash('bar'));
         $this->assertNull(Http\session('bar'));
 
+        $this->assertSame('/foo', Http\base_path());
+        $this->assertSame('/foo/bar', Http\base_path('/bar'));
+        $this->assertSame('test.php', Http\entry());
+        $this->assertSame('http', Http\scheme());
+        $this->assertSame('test', Http\host());
+        $this->assertSame('', Http\port());
+        $this->assertSame('/foo/test.php', Http\path());
+        $this->assertSame('/foo/test.php/foo', Http\path('/foo'));
+        $this->assertSame('http://test/foo', Http\base_url());
+        $this->assertSame('http://test/foo/bar', Http\base_url('/bar'));
+        $this->assertSame('http://test/foo/test.php', Http\url());
+        $this->assertSame('http://test/foo/test.php/bar', Http\url('/bar'));
+        $this->assertSame('http://test/foo/bar', Http\asset('/bar'));
+
         Http\session_end();
+        Http\set_base_path('/update');
+        Http\set_entry('update.php');
+        Http\set_host('update');
+        Http\set_scheme('https');
+        Http\set_port('8000');
+        Http\set_asset('assets');
 
-        $this->assertSame('/foo/bar/baz', Http\url());
-        $this->assertSame('/foo/', Http\url(''));
-        $this->assertSame('/foo/bar', Http\url('/bar'));
-        $this->assertSame('/bar/baz', Http\path());
-
-        $this->assertSame('http://test:8000/bar/baz', Http\uri());
-    }
-
-    /**
-     * @runInSeparateProcess
-     */
-    public function testNotInSubFolderPath()
-    {
-        $_SERVER['SCRIPT_NAME'] = '/index.php';
-        $_SERVER['REQUEST_URI'] = '/foo/bar';
-
-        $this->assertSame('/foo/bar', Http\path());
-    }
-
-    /**
-     * @runInSeparateProcess
-     */
-    public function testSubFolderPathRepeats()
-    {
-        $_SERVER['REQUEST_URI'] = '/bar/foo/baz';
-
-        $this->assertSame('/bar/foo/baz', Http\path());
-    }
-
-    public function testFuzzyQueryString()
-    {
-        $_SERVER['QUERY_STRING'] = 'baz=qux&foo=bar';
-        $this->assertSame('/bar/baz', Http\path());
-    }
-
-    public function testEmptyRequestUri()
-    {
-        $_SERVER['REQUEST_URI'] = '';
-        $this->assertSame('/', Http\path());
-
-        $_SERVER['REQUEST_URI'] = '/';
-        $this->assertSame('/', Http\path());
-
-        $_SERVER['REQUEST_URI'] = '?foo=bar';
-        $this->assertSame('/', Http\path());
-
-        $_SERVER['REQUEST_URI'] = '/?foo=bar';
-        $this->assertSame('/', Http\path());
+        $this->assertSame('/update', Http\base_path());
+        $this->assertSame('update.php', Http\entry());
+        $this->assertSame('https', Http\scheme());
+        $this->assertSame('update', Http\host());
+        $this->assertSame('8000', Http\port());
+        $this->assertSame('/update/update.php', Http\path());
+        $this->assertSame('/update/update.php/foo', Http\path('/foo'));
+        $this->assertSame('https://update:8000/update', Http\base_url());
+        $this->assertSame('https://update:8000/update/update.php', Http\url());
+        $this->assertSame('https://update:8000/update/assets/bar', Http\asset('/bar'));
     }
 
     public function testStatus()

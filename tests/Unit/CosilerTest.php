@@ -2,10 +2,10 @@
 
 namespace Ekok\Cosiler\Test\Unit;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-final class CosilerTest extends TestCase
+final class CosilerTest extends ScopedTestCase
 {
     /** @dataProvider requireFnProvider */
     public function testRequire_fn($expected, string $file, array $params = null)

@@ -2,13 +2,17 @@
 
 namespace Ekok\Cosiler\Test\Unit\Http\Request;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Http\Request;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-final class RequestTest extends TestCase
+use function Ekok\Cosiler\Container\reset_state;
+
+final class RequestTest extends ScopedTestCase
 {
-    protected function setUp(): void
+    public function setUp(): void
     {
+        parent::setUp();
+
         $_GET = $_POST = $_REQUEST = $_COOKIE = $_SESSION = ['foo' => 'bar'];
         $_FILES = [
             'foo' => [
@@ -17,11 +21,22 @@ final class RequestTest extends TestCase
         ];
 
         $_SERVER['HTTP_HOST'] = 'test:8000';
+        $_SERVER['SERVER_PORT'] = '8000';
         $_SERVER['SCRIPT_NAME'] = '/foo/test.php';
-        $_SERVER['PATH_INFO'] = '/bar/baz';
+        $_SERVER['REQUEST_URI'] = '/bar/baz?foo=bar';
         $_SERVER['NON_HTTP'] = 'Ignore me';
         $_SERVER['CONTENT_TYPE'] = 'phpunit/test';
         $_SERVER['CONTENT_LENGTH'] = '123';
+    }
+
+    public function testPath()
+    {
+        $this->assertSame('/bar/baz', Request\path());
+    }
+
+    public function testUri()
+    {
+        $this->assertSame('http://test:8000/foo/test.php/bar/baz?foo=bar', Request\uri());
     }
 
     public function testRaw()
@@ -297,5 +312,47 @@ final class RequestTest extends TestCase
         $this->assertSame(123, Request\post_int('int'));
         $this->assertSame(null, Request\post_int('number'));
         $this->assertSame(12.34, Request\post_number('number'));
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testNotInSubFolderPath()
+    {
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        $_SERVER['REQUEST_URI'] = '/foo/bar';
+
+        $this->assertSame('/foo/bar', Request\path());
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testSubFolderPathRepeats()
+    {
+        $_SERVER['REQUEST_URI'] = '/bar/foo/baz';
+
+        $this->assertSame('/bar/foo/baz', Request\path());
+    }
+
+    public function testFuzzyQueryString()
+    {
+        $_SERVER['QUERY_STRING'] = 'baz=qux&foo=bar';
+        $this->assertSame('/bar/baz', Request\path());
+    }
+
+    public function testEmptyRequestUri()
+    {
+        $_SERVER['REQUEST_URI'] = '';
+        $this->assertSame('/', Request\path());
+
+        $_SERVER['REQUEST_URI'] = '/';
+        $this->assertSame('/', Request\path());
+
+        $_SERVER['REQUEST_URI'] = '?foo=bar';
+        $this->assertSame('/', Request\path());
+
+        $_SERVER['REQUEST_URI'] = '/?foo=bar';
+        $this->assertSame('/', Request\path());
     }
 }

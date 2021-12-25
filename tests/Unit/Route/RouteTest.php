@@ -2,13 +2,16 @@
 
 namespace Ekok\Cosiler\Test\Unit\Route;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Route;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
+use Ekok\Cosiler\Test\Fixture\Route\RouteClass;
 
-final class RouteTest extends TestCase
+final class RouteTest extends ScopedTestCase
 {
-    protected function setUp(): void
+    public function setUp(): void
     {
+        parent::setUp();
+
         $_GET = $_POST = $_REQUEST = ['foo' => 'bar'];
 
         $_SERVER['HTTP_HOST'] = 'test:8000';
@@ -269,22 +272,6 @@ final class RouteTest extends TestCase
         $result = Route\get('/', RouteClass::class . '::staticMethod');
 
         $this->assertSame('static_method', $result);
-    }
-
-    public function testWithBase()
-    {
-        Route\base('/bar');
-
-        $_SERVER['REQUEST_METHOD'] = 'GET';
-        $_SERVER['REQUEST_URI'] = '/foo/bar/baz';
-
-        $result = Route\get('/baz', static function() {
-            return 'foo';
-        });
-
-        $this->assertSame('foo', $result);
-
-        Route\base('');
     }
 
     /** @dataProvider routeFacadesProvider */

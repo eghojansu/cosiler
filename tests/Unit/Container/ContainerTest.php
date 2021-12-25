@@ -2,17 +2,12 @@
 
 namespace Ekok\Cosiler\Test\Unit\Container;
 
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Container;
 use Ekok\Cosiler\Container\Box;
+use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
 
-final class ContainerTest extends TestCase
+final class ContainerTest extends ScopedTestCase
 {
-    public function setUp(): void
-    {
-        Box::reset();
-    }
-
     public function testCo()
     {
         $this->assertSame('bar', Container\co('foo', 'bar'));

@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Ekok\Cosiler\Route;
 
 use function Ekok\Cosiler\Container\co;
-use function Ekok\Cosiler\Http\path;
 use function Ekok\Cosiler\Http\Request\method;
 use function Ekok\Cosiler\Http\Request\method_is;
+use function Ekok\Cosiler\Http\Request\path;
 use function Ekok\Cosiler\require_fn;
 use function Ekok\Cosiler\Utils\Arr\first;
 
-const BASE_PATH = 'route_base_path';
 const CANCEL = 'route_cancel';
 const DID_MATCH = 'route_did_match';
 const STOP_PROPAGATION = 'route_stop_propagation';
@@ -213,11 +212,11 @@ function files(string $basePath, string $prefix = '', $request = null)
  *
  * @param string                                                  $basePath  The prefix for all routes
  * @param class-string|object                                     $className The qualified class name
- * @param null|array{0: string, 1: string}|ServerRequestInterface $request
+ * @param null|array{0: string, 1: string} $request
  *
  * @throws \ReflectionException
  */
-function class_name(string $basePath, $className, $request = null): void
+function class_name(string $basePath, $className, $request = null)
 {
     $reflection = new \ReflectionClass($className);
     $object = $reflection->newInstance();
@@ -234,26 +233,26 @@ function class_name(string $basePath, $className, $request = null): void
 
         \array_unshift($path_segments, $basePath);
 
-        handle(
+        $result = handle(
             $specs[0],
             \implode('/', $path_segments),
-            function (array $params) use ($method, $object) {
-                foreach (\array_keys($params) as $key) {
-                    if (!\is_int($key)) {
-                        unset($params[$key]);
-                    }
-                }
-
-                $args = \array_slice($params, 1);
+            static function (array $params) use ($method, $object) {
+                $args = \array_slice(array_filter($params, 'is_numeric', ARRAY_FILTER_USE_KEY), 1);
                 $method->invokeArgs($object, $args);
             },
             $request
         );
+
+        if (did_match()) {
+            return $result;
+        }
     } //end foreach
+
+    return null;
 }
 
 /**
- * @param null|array{0: string, 1: string}|ServerRequestInterface $request
+ * @param null|array{0: string, 1: string} $request
  *
  * @return array{0: string, 1: string}
  *
@@ -312,14 +311,6 @@ function purge_match(): void
 }
 
 /**
- * Defines a base path for all routes.
- */
-function base(string $path): void
-{
-    co(BASE_PATH, $path);
-}
-
-/**
  * Returns true if a Propagation has stopped.
  */
 function is_propagation_stopped(): bool
@@ -351,9 +342,8 @@ function regexify(string $path): string
         '(?<$1>$2)',
     );
     $path = \preg_replace($patterns, $replaces, $path);
-    $base = co(BASE_PATH) ?? '';
 
-    return "#^{$base}{$path}/?$#";
+    return "#^{$path}/?$#";
 }
 
 /**

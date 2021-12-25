@@ -29,6 +29,11 @@ function co($key, ...$value)
     return $box->hive['co'][$key] ?? null;
 }
 
+function reset_state(): void
+{
+    Box::reset();
+}
+
 /**
  * Checks if there is some value in the given $key.
  *
