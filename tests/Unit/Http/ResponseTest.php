@@ -98,7 +98,7 @@ final class ResponseTest extends ScopedTestCase
     {
         $_SERVER['SCRIPT_NAME'] = '/foo/index.php';
 
-        Response\redirect('/bar');
+        Response\redirect('/bar', true);
 
         if (function_exists('xdebug_get_headers')) {
             $headers = xdebug_get_headers();

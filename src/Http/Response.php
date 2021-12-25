@@ -105,11 +105,12 @@ function header(string $key, string $val, bool $replace = true): void
 /**
  * Composes a default HTTP redirect response with the current base url.
  */
-function redirect(string $path): void
+function redirect(string $path, bool $continue = false): void
 {
     $location = false === strpos($path, '://') ? url($path) : $path;
 
     header('Location', $location);
+    $continue || die;
 }
 
 /**
