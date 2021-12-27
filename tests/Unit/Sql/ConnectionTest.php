@@ -278,9 +278,8 @@ SQL
 
     public function testUnregisteredMap()
     {
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Mapper is not registered: demo');
+        $mapper = $this->db->map('demo');
 
-        $this->db->map('demo');
+        $this->assertSame('demo', $mapper->table());
     }
 }

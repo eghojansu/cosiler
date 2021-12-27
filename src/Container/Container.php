@@ -111,8 +111,6 @@ function clear($key): void
         $remove();
     } elseif (is_object($var) && isset($var->$leaf)) {
         unset($var->$leaf);
-    } else {
-        throw new \LogicException(sprintf('Unable to clear value of %s', $key));
     }
 }
 
@@ -141,7 +139,7 @@ function clear_all(...$keys): void
     walk($keys, fn($key) => clear($key));
 }
 
-function push($key, $value): array
+function push($key, ...$values): array
 {
     $data = get($key);
 
@@ -149,7 +147,7 @@ function push($key, $value): array
         $data = (array) $data;
     }
 
-    $data[] = $value;
+    array_push($data, ...$values);
 
     set($key, $data);
 
@@ -173,7 +171,7 @@ function pop($key)
     return $data;
 }
 
-function unshift($key, $value): array
+function unshift($key, ...$values): array
 {
     $data = get($key);
 
@@ -181,7 +179,7 @@ function unshift($key, $value): array
         $data = (array) $data;
     }
 
-    \array_unshift($data, $value);
+    \array_unshift($data, ...$values);
 
     set($key, $data);
 

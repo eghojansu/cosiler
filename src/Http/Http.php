@@ -101,7 +101,7 @@ function entry(bool $prefix = false): string
 {
     $entry = co(ENTRY_FILE) ?? co(ENTRY_FILE, is_builtin() ? '' : \basename($_SERVER['SCRIPT_NAME']));
 
-    return $prefix ? '/' . $entry : $entry;
+    return $prefix && $entry ? '/' . $entry : $entry;
 }
 
 function set_scheme(string $scheme): void
@@ -140,12 +140,12 @@ function port(bool $prefix = false): string|int
 
 function set_asset(string $path): void
 {
-    co(ASSET_PREFIX, '/' . trim($path, '/'));
+    co(ASSET_PREFIX, '/' . trim($path, '/') . '/');
 }
 
 function asset(string $path): string
 {
-    return base_url(base_path(co(ASSET_PREFIX) . $path), true);
+    return base_url(base_path(co(ASSET_PREFIX) . ltrim($path, '/')), true);
 }
 
 function path(string $path = null): string

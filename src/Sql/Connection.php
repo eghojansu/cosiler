@@ -243,7 +243,7 @@ class Connection
         $setup = $this->maps[$name] ?? null;
 
         if (!$setup) {
-            throw new \LogicException(sprintf('Mapper is not registered: %s', $name));
+            return new Mapper($this, $name);
         }
 
         return new $setup['mapper']($this, ...$setup['arguments']);

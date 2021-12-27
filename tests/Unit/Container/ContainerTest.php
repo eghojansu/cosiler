@@ -99,10 +99,6 @@ final class ContainerTest extends ScopedTestCase
 
         $this->assertEquals('removed', Container\get('foo.obj.data'));
         $this->assertEquals(null, Container\get('foo.obj.data2'));
-
-        $this->expectException('LogicException');
-        $this->expectExceptionMessage('Unable to clear value of foo.tmp.member');
-        Container\clear('foo.tmp.member');
     }
 
     public function testMassive()
