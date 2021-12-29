@@ -11,7 +11,7 @@ class Builder
     public function __construct(
         private Helper $helper,
         private string|null $driver = null,
-        private bool|null $format = null,
+        bool|null $format = null,
     ) {
         if ($format) {
             $this->delimiter = "\n";

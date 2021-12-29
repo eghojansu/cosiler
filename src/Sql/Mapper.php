@@ -32,19 +32,28 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
     protected $columnsIgnore = array();
 
     /** @var array */
+    protected $casts = array();
+
+    /** @var bool */
+    protected $readonly = false;
+
+    /** @var array */
     protected $getters;
+
+    /** @var string */
+    protected $table;
 
     public function __construct(
         protected Connection $db,
-        protected string|null $table = null,
+        string|null $table = null,
         string|array|null $keys = null,
-        protected array|null $casts = null,
-        protected bool|null $readonly = null,
+        array|null $casts = null,
+        bool|null $readonly = null,
         string|array|null $columnsLoad = null,
         string|array|null $columnsIgnore = null,
     ) {
-        if (!$table) {
-            $this->table = case_snake(ltrim(strrchr('\\' . static::class, '\\'), '\\'));
+        if (!$this->table) {
+            $this->table = $table ?? case_snake(ltrim(strrchr('\\' . static::class, '\\'), '\\'));
         }
 
         if ($columnsLoad) {
@@ -57,6 +66,14 @@ class Mapper implements \ArrayAccess, \Iterator, \Countable, \JsonSerializable
 
         if ($keys) {
             $this->keys = map(ensure($keys), fn($auto, $key) => is_numeric($key) ? array($auto, true) : array($key, !!$auto));
+        }
+
+        if ($casts) {
+            $this->casts = $casts;
+        }
+
+        if (null !== $readonly) {
+            $this->readonly = $readonly;
         }
     }
 
