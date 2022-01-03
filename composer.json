@@ -1,8 +1,10 @@
 {
-    "name": "eghojansu/cosiler",
+    "name": "ekok/cosiler",
+    "description": "PHP Framework",
     "type": "library",
     "require": {
-        "php": ">=8.0"
+        "php": ">=8.0",
+        "ekok/php-utils": "dev-master"
     },
     "license": "MIT",
     "autoload": {
@@ -12,14 +14,11 @@
         "files": [
             "src/Container/Container.php",
             "src/Encoder/Json.php",
-            "src/File/File.php",
             "src/Http/Http.php",
             "src/Http/Request.php",
             "src/Http/Response.php",
             "src/Route/Route.php",
             "src/Template/Template.php",
-            "src/Utils/Arr.php",
-            "src/Utils/Str.php",
             "src/Cosiler.php"
         ]
     },

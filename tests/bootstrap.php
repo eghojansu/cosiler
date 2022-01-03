@@ -7,6 +7,4 @@ define('TEST_ROOT', __DIR__);
 define('TEST_FIXTURES', __DIR__.'/fixtures');
 define('TEMP_ROOT', TEST_PROJECT . '/var/tests');
 
-if (!is_dir(TEMP_ROOT)) {
-    mkdir(TEMP_ROOT, 0777, true);
-}
+is_dir(TEMP_ROOT) || mkdir(TEMP_ROOT, 0777, true);
