@@ -1,13 +1,13 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Template;
+namespace Ekok\Cosiler\Tests\Template;
 
 use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Template;
 
 final class TemplateTest extends TestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         Template\directory(TEST_FIXTURES . '/templates');
     }

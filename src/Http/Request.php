@@ -8,20 +8,22 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Http\Request;
 
-use function Ekok\Cosiler\Encoder\Json\decode;
-use function Ekok\Cosiler\Http\base_path;
+use Ekok\Utils\Arr;
+use Ekok\Utils\Payload;
+
 use function Ekok\Cosiler\Http\url;
-use function Ekok\Cosiler\Utils\Arr\map;
+use function Ekok\Cosiler\Http\base_path;
+use function Ekok\Cosiler\Encoder\Json\decode;
 
 /**
  * Get the current HTTP path info.
  */
 function path(): string
 {
-    $uri = \rawurldecode(\strstr(($_SERVER['REQUEST_URI'] ?? '') . '?', '?', true));
+    $uri = rawurldecode(strstr(($_SERVER['REQUEST_URI'] ?? '') . '?', '?', true));
     $base = base_path();
 
-    return '/' . \ltrim('' === $base ? $uri : \preg_replace("#^{$base}#", '', $uri, 1), '/');
+    return '/' . ltrim('' === $base ? $uri : preg_replace("#^{$base}#", '', $uri, 1), '/');
 }
 
 /**
@@ -45,9 +47,7 @@ function uri(): string
  */
 function raw(string $input = 'php://input'): string
 {
-    $contents = \file_get_contents($input);
-
-    return false === $contents ? '' : $contents;
+    return false === ($contents = file_get_contents($input)) ? '' : $contents;
 }
 
 /**
@@ -58,7 +58,7 @@ function raw(string $input = 'php://input'): string
 function params(string $input = 'php://input'): array
 {
     $params = array();
-    \parse_str(raw($input), $params);
+    parse_str(raw($input), $params);
 
     return $params;
 }
@@ -134,22 +134,22 @@ function accept(string $mime): bool
 function headers(string $key = null): array|string|null
 {
     if ($key) {
-        $ukey = \strtoupper(\str_replace('-', '_', $key));
+        $ukey = strtoupper(str_replace('-', '_', $key));
 
         return $_SERVER[$ukey] ?? $_SERVER['HTTP_'.$ukey] ?? null;
     }
 
-    return map($_SERVER, fn ($value, $header) => match (true) {
-        'CONTENT_TYPE' === $header => array('Content-Type', $value),
-        'CONTENT_LENGTH' === $header => array('Content-Length', $value),
-        0 === \strncmp($header, 'HTTP_', 5) => array(\ucwords(\strtolower(\str_replace('_', '-', \substr($header, 5))), '-'), $value),
+    return Arr::each($_SERVER, fn (Payload $header) => match (true) {
+        'CONTENT_TYPE' === $header->key => $header->key('Content-Type'),
+        'CONTENT_LENGTH' === $header->key => $header->key('Content-Length'),
+        str_starts_with($header->key, 'HTTP_') => $header->key(ucwords(strtolower(str_replace('_', '-', substr($header->key, 5))), '-')),
         default => null,
-    });
+    }, true);
 }
 
 function header_exists(string $key): bool
 {
-    $ukey = \strtoupper(\str_replace('-', '_', $key));
+    $ukey = strtoupper(str_replace('-', '_', $key));
 
     return isset($_SERVER[$ukey]) || isset($_SERVER['HTTP_' . $ukey]);
 }
@@ -222,13 +222,13 @@ function method(): string
  */
 function method_is($method, ?string $request_method = null): bool
 {
-    $check = \strtolower($request_method ?? method());
+    $check = strtolower($request_method ?? method());
 
-    if (\is_array($method)) {
-        return \in_array($check, \array_map('strtolower', $method), true);
+    if (is_array($method)) {
+        return in_array($check, array_map('strtolower', $method), true);
     }
 
-    return \strtolower($method) === $check;
+    return strtolower($method) === $check;
 }
 
 /**
@@ -243,19 +243,19 @@ function accepted_locales(): array
 
     if (isset($_SERVER['HTTP_ACCEPT_LANGUAGE'])) {
         // break up string into pieces (languages and q factors)
-        \preg_match_all(
+        preg_match_all(
             '/([a-z]{1,8}(-[a-z]{1,8})?)\s*(;\s*q\s*=\s*(1|0\.\d+))?/i',
             (string) $_SERVER['HTTP_ACCEPT_LANGUAGE'],
             $lang_parse
         );
 
-        if (\count($lang_parse) > 1 && \count($lang_parse[1]) > 0) {
+        if (count($lang_parse) > 1 && count($lang_parse[1]) > 0) {
             // create a list like "en" => 0.8
             /** @var array<mixed, array-key> $lang_parse_1 */
             $lang_parse_1 = $lang_parse[1];
             /** @var array<mixed, mixed> $lang_parse_4 */
             $lang_parse_4 = $lang_parse[4];
-            $languages = \array_combine($lang_parse_1, $lang_parse_4);
+            $languages = array_combine($lang_parse_1, $lang_parse_4);
 
             /**
              * Set default to 1 for any without q factor.
@@ -269,7 +269,7 @@ function accepted_locales(): array
                 }
             }
 
-            \arsort($languages, SORT_NUMERIC | SORT_DESC);
+            arsort($languages, SORT_NUMERIC | SORT_DESC);
         }
     } //end if
 
@@ -298,11 +298,11 @@ function recommended_locale(string $default = ''): string
 
     if (empty($locale)) {
         $locales = accepted_locales();
-        $locale = empty($locales) ? '' : (string) \array_keys($locales)[0];
+        $locale = empty($locales) ? '' : (string) array_keys($locales)[0];
     }
 
     if (empty($locale)) {
-        $locale = $default ?: (\function_exists('locale_get_default') ? \locale_get_default() : '');
+        $locale = $default ?: (function_exists('locale_get_default') ? locale_get_default() : '');
     }
 
     return $locale;
@@ -313,7 +313,7 @@ function recommended_locale(string $default = ''): string
  */
 function bearer(): ?string
 {
-    return \sscanf(authorization_header() ?? '', 'Bearer %s', $token) > 0 ? $token : null;
+    return sscanf(authorization_header() ?? '', 'Bearer %s', $token) > 0 ? $token : null;
 }
 
 /**

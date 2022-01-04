@@ -1,14 +1,14 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Http;
+namespace Ekok\Cosiler\Tests\Http;
 
 use Ekok\Cosiler\Http;
 use Ekok\Cosiler\Http\HttpException;
-use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
+use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
 final class HttpTest extends ScopedTestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 

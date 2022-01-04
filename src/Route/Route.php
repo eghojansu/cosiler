@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Route;
 
-use function Ekok\Cosiler\Container\co;
+use Ekok\Utils\Arr;
+use Ekok\Utils\Payload;
+
+use function Ekok\Cosiler\storage;
+use function Ekok\Cosiler\require_fn;
+use function Ekok\Cosiler\Http\Request\path;
 use function Ekok\Cosiler\Http\Request\method;
 use function Ekok\Cosiler\Http\Request\method_is;
-use function Ekok\Cosiler\Http\Request\path;
-use function Ekok\Cosiler\require_fn;
-use function Ekok\Cosiler\Utils\Arr\first;
 
 const CANCEL = 'route_cancel';
 const DID_MATCH = 'route_did_match';
@@ -126,11 +128,11 @@ function handle($method, string $path, $handler, $request = null)
     $method_path = method_path($request);
 
     if (
-        \count($method_path) >= 2
-        && (method_is($method, \strval($method_path[0])) || 'any' == $method)
-        && \preg_match($path, \strval($method_path[1]), $params)
+        count($method_path) >= 2
+        && (method_is($method, strval($method_path[0])) || 'any' == $method)
+        && preg_match($path, strval($method_path[1]), $params)
     ) {
-        co(DID_MATCH, true);
+        storage(DID_MATCH, true);
 
         return $call($params);
     }
@@ -149,8 +151,8 @@ function handle($method, string $path, $handler, $request = null)
  */
 function resource(string $base_path, string $resources_path, ?string $identity_param = null, $request = null)
 {
-    $base_path = '/'.\trim($base_path, '/');
-    $resources_path = \rtrim($resources_path, '/');
+    $base_path = '/'.trim($base_path, '/');
+    $resources_path = rtrim($resources_path, '/');
     $id = $identity_param ?? 'id';
     $resources = array(
         array('get', null, 'index'),
@@ -162,7 +164,7 @@ function resource(string $base_path, string $resources_path, ?string $identity_p
         array('delete', '/{'.$id.'}', 'destroy'),
     );
 
-    return first($resources, fn($args) => handle($args[0], $base_path.$args[1], $resources_path.'/'.$args[2].'.php', $request));
+    return Arr::first($resources, fn(Payload $args) => handle($args->value[0], $base_path.$args->value[1], $resources_path.'/'.$args->value[2].'.php', $request));
 }
 
 /**
@@ -174,7 +176,7 @@ function resource(string $base_path, string $resources_path, ?string $identity_p
  */
 function files(string $basePath, string $prefix = '', $request = null)
 {
-    $realpath = \realpath($basePath);
+    $realpath = realpath($basePath);
 
     if (false === $realpath) {
         throw new \InvalidArgumentException("{$basePath} does not exists");
@@ -185,14 +187,14 @@ function files(string $basePath, string $prefix = '', $request = null)
     $iterator = new \RecursiveIteratorIterator($directory);
     $regex = new \RegexIterator($iterator, '/^.+\.php$/i', \RecursiveRegexIterator::GET_MATCH);
 
-    $files = \array_keys(\iterator_to_array($regex));
-    $cut = \strlen($realpath);
-    $withPrefix = \rtrim($prefix, '/');
+    $files = array_keys(iterator_to_array($regex));
+    $cut = strlen($realpath);
+    $withPrefix = rtrim($prefix, '/');
 
-    \sort($files);
+    sort($files);
 
     foreach ($files as $filename) {
-        $cut_filename = \substr((string) $filename, $cut);
+        $cut_filename = substr((string) $filename, $cut);
 
         list($method, $path) = routify($cut_filename);
 
@@ -224,20 +226,20 @@ function class_name(string $basePath, $className, $request = null)
     $methods = $reflection->getMethods(\ReflectionMethod::IS_PUBLIC);
 
     foreach ($methods as $method) {
-        $specs = \preg_split('/(?=[A-Z])/', $method->name);
+        $specs = preg_split('/(?=[A-Z])/', $method->name);
 
-        $path_params = \array_map(fn(\ReflectionParameter $param)  => $param->isOptional() ? "?{{$param->name}}?" : "{{$param->name}}", $method->getParameters());
-        $path_segments = \array_map('strtolower', \array_slice($specs, 1));
-        $path_segments = \array_filter($path_segments, fn(string $segment) => 'index' !== $segment);
-        $path_segments = \array_merge($path_segments, $path_params);
+        $path_params = array_map(fn(\ReflectionParameter $param)  => $param->isOptional() ? "?{{$param->name}}?" : "{{$param->name}}", $method->getParameters());
+        $path_segments = array_map('strtolower', array_slice($specs, 1));
+        $path_segments = array_filter($path_segments, fn(string $segment) => 'index' !== $segment);
+        $path_segments = array_merge($path_segments, $path_params);
 
-        \array_unshift($path_segments, $basePath);
+        array_unshift($path_segments, $basePath);
 
         $result = handle(
             $specs[0],
-            \implode('/', $path_segments),
+            implode('/', $path_segments),
             static function (array $params) use ($method, $object) {
-                $args = \array_slice(array_filter($params, 'is_numeric', ARRAY_FILTER_USE_KEY), 1);
+                $args = array_slice(array_filter($params, 'is_numeric', ARRAY_FILTER_USE_KEY), 1);
                 $method->invokeArgs($object, $args);
             },
             $request
@@ -260,7 +262,7 @@ function class_name(string $basePath, $className, $request = null)
  */
 function method_path($request = null): array
 {
-    if (\is_array($request)) {
+    if (is_array($request)) {
         return $request;
     }
 
@@ -274,7 +276,7 @@ function method_path($request = null): array
  */
 function cancel(): void
 {
-    co(CANCEL, true);
+    storage(CANCEL, true);
 }
 
 /**
@@ -282,7 +284,7 @@ function cancel(): void
  */
 function canceled(): bool
 {
-    return (bool) co(CANCEL);
+    return (bool) storage(CANCEL);
 }
 
 /**
@@ -290,8 +292,8 @@ function canceled(): bool
  */
 function resume(): void
 {
-    co(STOP_PROPAGATION, false);
-    co(CANCEL, false);
+    storage(STOP_PROPAGATION, false);
+    storage(CANCEL, false);
 }
 
 /**
@@ -299,7 +301,7 @@ function resume(): void
  */
 function did_match(): bool
 {
-    return (bool) co(DID_MATCH);
+    return (bool) storage(DID_MATCH);
 }
 
 /**
@@ -307,7 +309,7 @@ function did_match(): bool
  */
 function purge_match(): void
 {
-    co(DID_MATCH, false);
+    storage(DID_MATCH, false);
 }
 
 /**
@@ -315,7 +317,7 @@ function purge_match(): void
  */
 function is_propagation_stopped(): bool
 {
-    return (bool) co(STOP_PROPAGATION);
+    return (bool) storage(STOP_PROPAGATION);
 }
 
 /**
@@ -323,7 +325,7 @@ function is_propagation_stopped(): bool
  */
 function stop_propagation(): void
 {
-    co(STOP_PROPAGATION, true);
+    storage(STOP_PROPAGATION, true);
 }
 
 /**
@@ -341,7 +343,7 @@ function regexify(string $path): string
         '(?<$1>[A-z0-9_-]+)',
         '(?<$1>$2)',
     );
-    $path = \preg_replace($patterns, $replaces, $path);
+    $path = preg_replace($patterns, $replaces, $path);
 
     return "#^{$path}/?$#";
 }
@@ -353,26 +355,26 @@ function regexify(string $path): string
  */
 function routify(string $filename): array
 {
-    $filename = \str_replace('\\', '/', $filename);
-    $filename = \trim($filename, '/');
-    $filename = \str_replace('/', '.', $filename);
+    $filename = str_replace('\\', '/', $filename);
+    $filename = trim($filename, '/');
+    $filename = str_replace('/', '.', $filename);
 
-    $tokens = \array_slice(\explode('.', $filename), 0, -1);
-    $tokens = \array_map(function ($token) {
+    $tokens = array_slice(explode('.', $filename), 0, -1);
+    $tokens = array_map(function ($token) {
         if ('$' == $token[0]) {
-            $token = '{'.\substr($token, 1).'}';
+            $token = '{'.substr($token, 1).'}';
         }
 
         if ('@' == $token[0]) {
-            $token = '?{'.\substr($token, 1).'}?';
+            $token = '?{'.substr($token, 1).'}?';
         }
 
         return $token;
     }, $tokens);
 
-    $method = \array_pop($tokens);
-    $path = \implode('/', $tokens);
-    $path = '/'.\trim(\str_replace('index', '', $path), '/');
+    $method = array_pop($tokens);
+    $path = implode('/', $tokens);
+    $path = '/'.\trim(str_replace('index', '', $path), '/');
 
     return array($method, $path);
 }

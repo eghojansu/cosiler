@@ -7,9 +7,7 @@ We copy that concept, copy the source code and adjust it with our coding style.
 
 - Use PHP8 Feature *null coallesce" instead of using function for getting value from array
 - No functional "sugar" added
-- The Container support for creating service/factory
-- The Container upport loading PHP-configuration with simple value merging
-- Internal framework state saved in namespaced container hive
+- Storage function
 - Remove support for PSR Request Interface and Swoole
 - Autostart session when used in code
 - Template loader

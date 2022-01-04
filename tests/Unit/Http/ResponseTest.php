@@ -1,11 +1,9 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Http\Response;
+namespace Ekok\Cosiler\Tests\Http\Response;
 
 use Ekok\Cosiler\Http\Response;
-use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
-
-use function xdebug_get_headers;
+use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
 final class ResponseTest extends ScopedTestCase
 {

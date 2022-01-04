@@ -2,17 +2,26 @@
     "name": "ekok/cosiler",
     "description": "PHP Framework",
     "type": "library",
+    "license": "MIT",
+    "minimum-stability": "stable",
+    "authors": [
+        {
+            "name": "Eko Kurniawan",
+            "email": "setiawanegho@gmail.com"
+        }
+    ],
     "require": {
         "php": ">=8.0",
         "ekok/php-utils": "dev-master"
     },
-    "license": "MIT",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
     "autoload": {
         "psr-4": {
             "Ekok\\Cosiler\\": "src/"
         },
         "files": [
-            "src/Container/Container.php",
             "src/Encoder/Json.php",
             "src/Http/Http.php",
             "src/Http/Request.php",
@@ -24,15 +33,5 @@
     },
     "autoload-dev": {
         "classmap": ["tests/fixtures/classes"]
-    },
-    "authors": [
-        {
-            "name": "Eko Kurniawan",
-            "email": "setiawanegho@gmail.com"
-        }
-    ],
-    "minimum-stability": "stable",
-    "require-dev": {
-        "phpunit/phpunit": "^9.5"
     }
 }

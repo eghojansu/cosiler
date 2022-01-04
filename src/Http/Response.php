@@ -13,8 +13,8 @@ use function Ekok\Cosiler\Http\url;
 
 function start(int $code = 200, string $mimeType = 'text/html', string $charset = 'utf-8'): void
 {
-    headers_sent() || \header(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1', $code, status($code)));
-    headers_sent() || \header(sprintf('%s: %s;charset=%s', 'Content-Type', $mimeType, $charset));
+    header_if(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1', $code, status($code)));
+    header_if(sprintf('%s: %s;charset=%s', 'Content-Type', $mimeType, $charset));
 }
 
 /**
@@ -45,7 +45,7 @@ function output(string $content = '', int $code = 204, string $mimeType = 'text/
  */
 function text($content, int $code = 200, string $charset = 'utf-8'): int
 {
-    return output(\strval($content), $code, 'text/plain', $charset);
+    return output(strval($content), $code, 'text/plain', $charset);
 }
 
 /**
@@ -73,7 +73,7 @@ function html(string $content, int $code = 200, string $charset = 'utf-8'): int
  */
 function json_str(string $content, int $code = 200, string $charset = 'utf-8'): int
 {
-    return output(\strval($content), $code, 'application/json', $charset);
+    return output(strval($content), $code, 'application/json', $charset);
 }
 
 /**
@@ -97,9 +97,14 @@ function json($content, int $code = 200, string $charset = 'utf-8'): int
  * @param string $val     The response header value
  * @param bool   $replace should replace a previous similar header, or add a second header of the same type
  */
-function header(string $key, string $val, bool $replace = true): void
+function header(string $key, string $val = null, ...$args): void
 {
-    headers_sent() || \header($key.': '.$val, $replace);
+    headers_sent() || \header(null === $val || '' === $val ? $key : $key.': '.$val, ...$args);
+}
+
+function header_if(string $key, string $val = null, string $check = null, ...$args): void
+{
+    preg_grep('/^' . preg_quote($check ?? strstr($key . ':', ':', true), '/') . '/i', headers_list()) || header($key, $val, ...$args);
 }
 
 /**
@@ -109,7 +114,7 @@ function redirect(string $path, bool $continue = false): void
 {
     $location = false === strpos($path, '://') ? url($path) : $path;
 
-    header('Location', $location);
+    header_if('Location', $location);
     $continue || die;
 }
 
@@ -126,10 +131,10 @@ function no_content(): void
  */
 function cors(string $origin = '*', string $headers = 'Content-Type', string $methods = 'GET, POST, PUT, DELETE', string $credentials = 'true'): void
 {
-    header('Access-Control-Allow-Origin', $origin);
-    header('Access-Control-Allow-Headers', $headers);
-    header('Access-Control-Allow-Methods', $methods);
-    header('Access-Control-Allow-Credentials', $credentials);
+    header_if('Access-Control-Allow-Origin', $origin);
+    header_if('Access-Control-Allow-Headers', $headers);
+    header_if('Access-Control-Allow-Methods', $methods);
+    header_if('Access-Control-Allow-Credentials', $credentials);
 
     if (method_is('options')) {
         no_content();

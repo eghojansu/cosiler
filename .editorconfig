@@ -13,6 +13,3 @@ insert_final_newline = false
 [*.php]
 insert_final_newline = true
 end_of_line = lf
-
-[tests/fixtures/templates/**/*.php]
-insert_final_newline = false

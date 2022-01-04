@@ -6,8 +6,8 @@ declare(strict_types=1);
 
 namespace Ekok\Cosiler\Http;
 
-use function Ekok\Cosiler\Container\co;
-use function Ekok\Cosiler\Utils\Str\fixslashes;
+use Ekok\Utils\Str;
+use function Ekok\Cosiler\storage;
 
 const BASE_PATH = 'http_base_path';
 const ENTRY_FILE = 'http_entry_file';
@@ -36,7 +36,7 @@ function cookie(?string $key = null)
  */
 function session(?string $key = null, $value = null)
 {
-    (PHP_SESSION_ACTIVE === \session_status() || headers_sent()) || \session_start();
+    (PHP_SESSION_ACTIVE === session_status() || headers_sent()) || session_start();
 
     if ($key && null !== $value) {
         $_SESSION[$key] = $value;
@@ -47,8 +47,8 @@ function session(?string $key = null, $value = null)
 
 function session_end(): void
 {
-    \session_unset();
-    PHP_SESSION_ACTIVE !== \session_status() || \session_destroy();
+    session_unset();
+    PHP_SESSION_ACTIVE !== session_status() || session_destroy();
 }
 
 /**
@@ -74,19 +74,19 @@ function is_builtin(): bool
 
 function set_base_path(string $base): void
 {
-    co(BASE_PATH, $base);
+    storage(BASE_PATH, $base);
 }
 
 function base_path(string $path = null, bool $entry = false): string
 {
-    $str = co(BASE_PATH) ?? co(BASE_PATH, is_builtin() ? '' : fixslashes(\dirname($_SERVER['SCRIPT_NAME'])));
+    $str = storage(BASE_PATH) ?? storage(BASE_PATH, is_builtin() ? '' : Str::fixslashes(dirname($_SERVER['SCRIPT_NAME'])));
 
     if ($entry) {
         $str .= entry(true);
     }
 
     if ($path) {
-        $str .= '/' . \ltrim($path, '/');
+        $str .= '/' . ltrim($path, '/');
     }
 
     return $str;
@@ -94,58 +94,58 @@ function base_path(string $path = null, bool $entry = false): string
 
 function set_entry(string $entry): void
 {
-    co(ENTRY_FILE, $entry);
+    storage(ENTRY_FILE, $entry);
 }
 
 function entry(bool $prefix = false): string
 {
-    $entry = co(ENTRY_FILE) ?? co(ENTRY_FILE, is_builtin() ? '' : \basename($_SERVER['SCRIPT_NAME']));
+    $entry = storage(ENTRY_FILE) ?? storage(ENTRY_FILE, is_builtin() ? '' : basename($_SERVER['SCRIPT_NAME']));
 
     return $prefix && $entry ? '/' . $entry : $entry;
 }
 
 function set_scheme(string $scheme): void
 {
-    co(HTTP_SCHEME, $scheme);
+    storage(HTTP_SCHEME, $scheme);
 }
 
 function scheme(bool $suffix = false): string
 {
-    $scheme = co(HTTP_SCHEME) ?? co(HTTP_SCHEME, ($_SERVER['HTTPS'] ?? '') ? 'https' : 'http');
+    $scheme = storage(HTTP_SCHEME) ?? storage(HTTP_SCHEME, ($_SERVER['HTTPS'] ?? '') ? 'https' : 'http');
 
     return $suffix ? $scheme . '://' : $scheme;
 }
 
 function set_host(string $host): void
 {
-    co(HTTP_HOST, $host);
+    storage(HTTP_HOST, $host);
 }
 
 function host(): string
 {
-    return strstr((co(HTTP_HOST) ?? co(HTTP_HOST, $_SERVER['HTTP_HOST'] ?? 'localhost')) . ':', ':', true);
+    return strstr((storage(HTTP_HOST) ?? storage(HTTP_HOST, $_SERVER['HTTP_HOST'] ?? 'localhost')) . ':', ':', true);
 }
 
 function set_port(string|int $port): void
 {
-    co(HTTP_PORT, $port);
+    storage(HTTP_PORT, $port);
 }
 
 function port(bool $prefix = false): string|int
 {
-    $port = co(HTTP_PORT) ?? co(HTTP_PORT, $_SERVER['SERVER_PORT'] ?? '');
+    $port = storage(HTTP_PORT) ?? storage(HTTP_PORT, $_SERVER['SERVER_PORT'] ?? '');
 
-    return $prefix ? (\in_array(\intval($port), array(0, 80, 443)) ? '' : ':' . $port) : $port;
+    return $prefix ? (in_array(intval($port), array(0, 80, 443)) ? '' : ':' . $port) : $port;
 }
 
 function set_asset(string $path): void
 {
-    co(ASSET_PREFIX, '/' . trim($path, '/') . '/');
+    storage(ASSET_PREFIX, '/' . trim($path, '/') . '/');
 }
 
 function asset(string $path): string
 {
-    return base_url(base_path(co(ASSET_PREFIX) . ltrim($path, '/')), true);
+    return base_url(base_path(storage(ASSET_PREFIX) . ltrim($path, '/')), true);
 }
 
 function path(string $path = null): string
@@ -224,7 +224,7 @@ function status(int $code, bool $throw = true): string
         510 => 'Not Extended',
         511 => 'Network Authentication Required',
     );
-    $unsupported = isset($codes[$code]) ? null : \sprintf('Unsupported HTTP code: %s', $code);
+    $unsupported = isset($codes[$code]) ? null : sprintf('Unsupported HTTP code: %s', $code);
 
     if ($unsupported && $throw) {
         throw new \LogicException($unsupported);

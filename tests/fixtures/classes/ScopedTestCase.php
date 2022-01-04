@@ -1,16 +1,16 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Fixture;
+namespace Ekok\Cosiler\Tests\Fixture;
 
 use PHPUnit\Framework\TestCase;
 
-use function Ekok\Cosiler\Container\reset_state;
+use function Ekok\Cosiler\storage;
 
 abstract class ScopedTestCase extends TestCase
 {
     private $globals = array();
 
-    public function setUp(): void
+    protected function setUp(): void
     {
         $this->globals = array_intersect_key($GLOBALS, array(
             '_GET' => true,
@@ -21,10 +21,11 @@ abstract class ScopedTestCase extends TestCase
             '_REQUEST' => true,
             '_SESSION' => true,
         ));
-        reset_state();
+
+        storage(null, 'RESET');
     }
 
-    public function tearDown(): void
+    protected function tearDown(): void
     {
         foreach ($this->globals as $key => $value) {
             $GLOBALS[$key] = $value;

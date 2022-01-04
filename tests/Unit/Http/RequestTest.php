@@ -1,15 +1,13 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Http\Request;
+namespace Ekok\Cosiler\Tests\Http\Request;
 
 use Ekok\Cosiler\Http\Request;
-use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
-
-use function Ekok\Cosiler\Container\reset_state;
+use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
 final class RequestTest extends ScopedTestCase
 {
-    public function setUp(): void
+    protected function setUp(): void
     {
         parent::setUp();
 

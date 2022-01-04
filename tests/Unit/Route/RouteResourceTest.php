@@ -1,9 +1,9 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Route;
+namespace Ekok\Cosiler\Tests\Route;
 
 use Ekok\Cosiler\Route;
-use Ekok\Cosiler\Test\Fixture\ScopedTestCase;
+use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
 final class RouteResourceTest extends ScopedTestCase
 {
