@@ -33,5 +33,11 @@
     },
     "autoload-dev": {
         "classmap": ["tests/fixtures/classes"]
+    },
+    "suggest": {
+        "ekok/php-container": "Context container and DI manager",
+        "ekok/php-sql": "Mapping code with SQL database tables",
+        "ekok/php-utils": "A set of php utilities",
+        "ekok/php-validation": "Validating user input"
     }
 }
