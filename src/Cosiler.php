@@ -34,6 +34,10 @@ function storage(string $name = null, ...$sets)
     if ($name) {
         if ($sets) {
             $storage[$name] = $sets[0];
+
+            if (true === ($sets[1] ?? false)) {
+                $default = $name;
+            }
         }
 
         return $storage[$name] ?? null;

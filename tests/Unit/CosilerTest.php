@@ -46,13 +46,23 @@ final class CosilerTest extends ScopedTestCase
 
     public function testStorage()
     {
+        // initials
         $this->assertCount(0, Cosiler\storage());
+        // no data
         $this->assertNull(Cosiler\storage('foo'));
 
+        // set
         Cosiler\storage('foo', 'bar');
+
+        // set default
         Cosiler\storage(null, 'foo');
 
         $this->assertSame('bar', Cosiler\storage());
+
+        // set default second method
+        Cosiler\storage('bar', 'baz', true);
+
+        $this->assertSame('baz', Cosiler\storage());
 
         Cosiler\storage(null, 'RESET');
 
