@@ -97,6 +97,22 @@ final class RouteFileTest extends ScopedTestCase
      * @runInSeparateProcess
      * @preserveGlobalState  disabled
      */
+    public function testReturnsFromGlobals()
+    {
+        $_SERVER['REQUEST_URI'] = '/returns';
+        Route\globals_add('returns_back', "It's returning back");
+
+        $expected = "It's returning back";
+        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+
+        $this->assertEquals($expected, $actual);
+        $this->assertTrue(Route\did_match());
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
     public function testNotFound()
     {
         $_SERVER['REQUEST_URI'] = '/not-exists-route';

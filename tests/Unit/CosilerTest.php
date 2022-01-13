@@ -8,9 +8,9 @@ use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 final class CosilerTest extends ScopedTestCase
 {
     /** @dataProvider requireFnProvider */
-    public function testRequire_fn($expected, string $file, array $params = null)
+    public function testRequire_fn($expected, string $file, array $params = null, array $data = null)
     {
-        $cb = Cosiler\require_fn($file);
+        $cb = Cosiler\require_fn($file, $data);
         $actual = $cb($params ?? array());
 
         $this->assertSame($expected, $actual);
@@ -23,6 +23,12 @@ final class CosilerTest extends ScopedTestCase
                 'baz',
                 TEST_FIXTURES.'/routes/foo.php',
                 array('bar' => 'baz'),
+            ),
+            'require file data' => array(
+                'quux',
+                TEST_FIXTURES.'/routes/foo.php',
+                array('qux' => 'quux'),
+                array('get' => 'qux'),
             ),
             'file returns callback' => array(
                 'bar',

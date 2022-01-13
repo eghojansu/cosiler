@@ -1,1 +1,1 @@
-<?php return 'I am "something" to returns';
+<?php return $returns_back ?? 'I am "something" to returns';

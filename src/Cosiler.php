@@ -21,9 +21,9 @@ function bootstrap(string $errorFile, string ...$appFiles): void
     }
 }
 
-function require_fn(string $filename): \Closure
+function require_fn(string $filename, array $data = null): \Closure
 {
-    return static fn (array $params = null) => is_callable($value = File::load($filename, compact('params'))) ? $value($params) : $value;
+    return static fn (array $params = null) => is_callable($value = File::load($filename, compact('params') + ($data ?? array()) )) ? $value($params) : $value;
 }
 
 function storage(string $name = null, ...$sets)

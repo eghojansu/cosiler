@@ -16,6 +16,7 @@ use function Ekok\Cosiler\Http\Request\method_is;
 const CANCEL = 'route_cancel';
 const DID_MATCH = 'route_did_match';
 const STOP_PROPAGATION = 'route_stop_propagation';
+const GLOBALS = 'route_globals';
 
 /**
  * Define a new route using the GET HTTP method.
@@ -122,7 +123,7 @@ function handle($method, string $path, $handler, $request = null)
     $call = $handler;
 
     if (is_string($call) && !is_callable($call)) {
-        $call = require_fn($call);
+        $call = require_fn($call, globals());
     }
 
     $method_path = method_path($request);
@@ -251,6 +252,18 @@ function class_name(string $basePath, $className, $request = null)
     } //end foreach
 
     return null;
+}
+
+function globals(): array
+{
+    return storage(GLOBALS) ?? array();
+}
+
+function globals_add($key, $value = null, bool $replace = false): void
+{
+    $add = is_array($key) ? $key : array($key => $value);
+
+    storage(GLOBALS, $replace ? $add : $add + globals());
 }
 
 /**
