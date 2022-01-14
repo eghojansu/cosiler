@@ -8,6 +8,7 @@ namespace Ekok\Cosiler\Http\Response;
 
 use function Ekok\Cosiler\Encoder\Json\encode;
 use function Ekok\Cosiler\Http\Request\method_is;
+use function Ekok\Cosiler\Http\Request\uri;
 use function Ekok\Cosiler\Http\status;
 use function Ekok\Cosiler\Http\url;
 
@@ -116,6 +117,11 @@ function redirect(string $path, bool $continue = false): void
 
     header_if('Location', $location);
     $continue || die;
+}
+
+function back(bool $continue = false): void
+{
+    redirect(uri(), $continue);
 }
 
 /**
