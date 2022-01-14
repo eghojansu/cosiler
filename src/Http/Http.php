@@ -21,7 +21,7 @@ const ASSET_PREFIX = 'http_asset_prefix';
  *
  * @return null|array<string, null|string>|string
  */
-function cookie(?string $key = null)
+function cookie(string $key = null)
 {
     return $key ? ($_COOKIE[$key] ?? null) : $_COOKIE;
 }
@@ -34,7 +34,7 @@ function cookie(?string $key = null)
  *
  * @return mixed
  */
-function session(?string $key = null, $value = null)
+function session(string $key = null, $value = null)
 {
     (PHP_SESSION_ACTIVE === session_status() || headers_sent()) || session_start();
 
@@ -56,7 +56,7 @@ function session_end(): void
  *
  * @return mixed
  */
-function flash(?string $key = null)
+function flash(string $key = null)
 {
     $value = session($key);
 
