@@ -198,11 +198,13 @@ final class RouteTest extends ScopedTestCase
         $this->assertSame('#^//?$#', Route\regexify('/'));
         $this->assertSame('#^/foo/?$#', Route\regexify('/foo'));
         $this->assertSame('#^/foo/bar/?$#', Route\regexify('/foo/bar'));
-        $this->assertSame('#^/foo/(?<baz>[A-z0-9_-]+)/?$#', Route\regexify('/foo/{baz}'));
-        $this->assertSame('#^/foo/(?<BaZ>[A-z0-9_-]+)/?$#', Route\regexify('/foo/{BaZ}'));
-        $this->assertSame('#^/foo/(?<bar_baz>[A-z0-9_-]+)/?$#', Route\regexify('/foo/{bar_baz}'));
-        $this->assertSame('#^/foo/(?<baz>[A-z0-9_-]+)/qux/?$#', Route\regexify('/foo/{baz}/qux'));
-        $this->assertSame('#^/foo/(?<baz>[A-z0-9_-]+)?/?$#', Route\regexify('/foo/{baz}?'));
+        $this->assertSame('#^/foo/(?<baz>[\w-]+)/?$#', Route\regexify('/foo/{baz}'));
+        $this->assertSame('#^/foo/(?<BaZ>[\w-]+)/?$#', Route\regexify('/foo/{BaZ}'));
+        $this->assertSame('#^/foo/(?<bar_baz>[\w-]+)/?$#', Route\regexify('/foo/{bar_baz}'));
+        $this->assertSame('#^/foo/(?<baz>[\w-]+)/qux/?$#', Route\regexify('/foo/{baz}/qux'));
+        $this->assertSame('#^/foo/(?<baz>[\w-]+)?/?$#', Route\regexify('/foo/{baz}?'));
+        $this->assertSame('#^/foo/(?<baz>.*)/?$#', Route\regexify('/foo/{baz@}'));
+        $this->assertSame('#^/foo/(?<baz>.*)?/?$#', Route\regexify('/foo/{baz@}?'));
 
         $this->assertSame('#^/foo/(?<baz>[0-9]+)/?$#', Route\regexify('/foo/{baz:[0-9]+}'));
         $this->assertSame('#^/foo/(?<baz>[A-z]*)/?$#', Route\regexify('/foo/{baz:[A-z]*}'));

@@ -131,4 +131,81 @@ final class RouteFileTest extends ScopedTestCase
         $this->expectException(\InvalidArgumentException::class);
         Route\files('path/does/not/exists');
     }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
+    public function testParamsEater()
+    {
+        $this->expectOutputString('complete path is: foo/bar/baz');
+
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/all/foo/bar/baz';
+
+        Route\files(TEST_FIXTURES . '/route_files/');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
+    public function testParamsEaterNotGiven()
+    {
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/all';
+
+        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+
+        $this->assertNull($actual);
+        $this->assertFalse(Route\did_match());
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
+    public function testOptionalParamsEater()
+    {
+        $this->expectOutputString('complete path is: foo/bar/baz');
+
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/all-none/foo/bar/baz';
+
+        Route\files(TEST_FIXTURES . '/route_files/');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
+    public function testOptionalParamsEaterNotGiven()
+    {
+        $this->expectOutputString('complete path is: ');
+
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/all-none';
+
+        Route\files(TEST_FIXTURES . '/route_files/');
+    }
+
+    /**
+     * @runInSeparateProcess
+     * @preserveGlobalState  disabled
+     */
+    public function testFileSkipped()
+    {
+        $_SERVER['SCRIPT_NAME'] = '/index.php';
+        $_SERVER['REQUEST_METHOD'] = 'GET';
+        $_SERVER['REQUEST_URI'] = '/skip';
+
+        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+
+        $this->assertNull($actual);
+        $this->assertFalse(Route\did_match());
+    }
 }

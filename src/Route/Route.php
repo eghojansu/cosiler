@@ -195,9 +195,14 @@ function files(string $basePath, string $prefix = '', $request = null)
     sort($files);
 
     foreach ($files as $filename) {
-        $cut_filename = substr((string) $filename, $cut);
+        $file = substr((string) $filename, $cut);
+        $hide = '_' === ($file[1] ?? null);
 
-        list($method, $path) = routify($cut_filename);
+        if ($hide) {
+            continue;
+        }
+
+        list($method, $path) = routify($file);
 
         $path = '/' === $path ? ($withPrefix ?: $path) : $withPrefix . $path;
         $result = handle($method, $path, (string) $filename, $request);
@@ -348,17 +353,15 @@ function stop_propagation(): void
  */
 function regexify(string $path): string
 {
-    $patterns = array(
-        '/{([A-z-]+)}/',
-        '/{([A-z-]+):(.*)}/',
+    return (
+        '#^' .
+        preg_replace_callback(
+            '/{(\w+)(?::([^}]+)|(@))?}/',
+            static fn (array $m) => '(?<' . $m[1] . '>' . (($m[3] ?? '') ? '.*' : ($m[2] ?? '[\w-]+')) . ')',
+            $path,
+        ) .
+        '/?$#'
     );
-    $replaces = array(
-        '(?<$1>[A-z0-9_-]+)',
-        '(?<$1>$2)',
-    );
-    $path = preg_replace($patterns, $replaces, $path);
-
-    return "#^{$path}/?$#";
 }
 
 /**
@@ -368,26 +371,22 @@ function regexify(string $path): string
  */
 function routify(string $filename): array
 {
-    $filename = str_replace('\\', '/', $filename);
-    $filename = trim($filename, '/');
-    $filename = str_replace('/', '.', $filename);
-
-    $tokens = array_slice(explode('.', $filename), 0, -1);
+    $file = trim(str_replace(array('\\', '/'), '.', $filename), '.');
     $tokens = array_map(function ($token) {
         if ('$' == $token[0]) {
-            $token = '{'.substr($token, 1).'}';
+            $token = '{' . substr($token, 1) . '}';
         }
 
         if ('@' == $token[0]) {
-            $token = '?{'.substr($token, 1).'}?';
+            $token = '?{' . substr($token, 1) . '}?';
         }
 
         return $token;
-    }, $tokens);
+    }, array_slice(explode('.', $file), 0, -1));
 
     $method = array_pop($tokens);
     $path = implode('/', $tokens);
-    $path = '/'.\trim(str_replace('index', '', $path), '/');
+    $path = '/' . trim(str_replace('index', '', $path), '/');
 
     return array($method, $path);
 }
