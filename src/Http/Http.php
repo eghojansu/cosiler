@@ -85,7 +85,7 @@ function base_path(string $path = null, bool $entry = false): string
         $str .= entry(true);
     }
 
-    if ($path && '/' !== $path) {
+    if ($path) {
         $str .= '/' . ltrim($path, '/');
     }
 

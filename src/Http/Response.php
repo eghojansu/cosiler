@@ -15,8 +15,8 @@ use function Ekok\Cosiler\Http\url;
 
 function start(int $code = 200, string $mimeType = 'text/html', string $charset = 'utf-8'): void
 {
-    header_if(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1', $code, status($code)));
-    header_if(sprintf('%s: %s;charset=%s', 'Content-Type', $mimeType, $charset));
+    header(sprintf('%s %s %s', $_SERVER['SERVER_PROTOCOL'] ?? 'HTTP/1.1', $code, status($code)), null, true, $code);
+    header(sprintf('%s: %s;charset=%s', 'Content-Type', $mimeType, $charset), null, true, $code);
 }
 
 /**

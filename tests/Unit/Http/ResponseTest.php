@@ -114,7 +114,7 @@ final class ResponseTest extends ScopedTestCase
 
         if (function_exists('xdebug_get_headers')) {
             $headers = xdebug_get_headers();
-            $this->assertContains('Location: http://localhost/foo/index.php', $headers);
+            $this->assertContains('Location: http://localhost/foo/index.php/', $headers);
         } else {
             $this->assertTrue(true);
         }
