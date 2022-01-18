@@ -353,4 +353,9 @@ final class RequestTest extends ScopedTestCase
         $_SERVER['REQUEST_URI'] = '/?foo=bar';
         $this->assertSame('/', Request\path());
     }
+
+    public function testIpaddress()
+    {
+        $this->assertSame('localhost', Request\ip_address());
+    }
 }

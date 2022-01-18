@@ -332,6 +332,31 @@ function user_agent(): ?string
     return headers('User-Agent');
 }
 
+function ip_address(string|int|null $version = null, string ...$ranges): string
+{
+    $flags = array_reduce(
+        $ranges,
+        fn (int $flags, string $range) => $flags | (defined($flag = 'FILTER_FLAG_' . strtoupper($range) . '_RANGE') ? constant($flag) : 0),
+        $version && defined($flag = 'FILTER_FLAG_IPV' . $version) ? constant($flag) : FILTER_FLAG_IPV4 | FILTER_FLAG_IPV6,
+    ) | FILTER_NULL_ON_FAILURE;
+
+    return Arr::first(
+        array(
+            'HTTP_CLIENT_IP',
+            'HTTP_X_FORWARDED_FOR',
+            'HTTP_X_FORWARDED',
+            'HTTP_X_CLUSTER_CLIENT_IP',
+            'HTTP_FORWARDED_FOR',
+            'HTTP_FORWARDED',
+            'REMOTE_ADDR'
+        ),
+        static fn(Payload $key) => Arr::first(
+            explode(',', $_SERVER[$key->value] ?? ''),
+            static fn(Payload $ip) => filter_var(trim($ip->value), FILTER_VALIDATE_IP, $flags),
+        ),
+    ) ?? 'localhost';
+}
+
 function get_int(string $key): int|null
 {
     return isset($_GET[$key]) && is_numeric($_GET[$key]) && is_int($val = $_GET[$key] * 1) ? $val : null;
