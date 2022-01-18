@@ -47,8 +47,10 @@ function session(string $key = null, $value = null)
 
 function session_end(): void
 {
+    (PHP_SESSION_ACTIVE === session_status() || headers_sent()) || session_start();
+
     session_unset();
-    PHP_SESSION_ACTIVE !== session_status() || session_destroy();
+    session_destroy();
 }
 
 /**
