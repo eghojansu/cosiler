@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Ekok\Cosiler\Http;
 
 use Ekok\Utils\Str;
+
 use function Ekok\Cosiler\storage;
 
 const BASE_PATH = 'http_base_path';
@@ -84,11 +85,11 @@ function base_path(string $path = null, bool $entry = false): string
     $str = storage(BASE_PATH) ?? storage(BASE_PATH, is_builtin() ? '' : Str::fixslashes(dirname($_SERVER['SCRIPT_NAME'])));
 
     if ($entry) {
-        $str .= entry(true);
+        $str = rtrim($str, '/') . entry(true);
     }
 
     if ($path) {
-        $str .= '/' . ltrim($path, '/');
+        $str = rtrim($str, '/') . '/' . ltrim($path, '/');
     }
 
     return $str;

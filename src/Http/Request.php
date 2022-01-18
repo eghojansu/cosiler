@@ -21,7 +21,7 @@ use function Ekok\Cosiler\Encoder\Json\decode;
 function path(): string
 {
     $uri = rawurldecode(strstr(($_SERVER['REQUEST_URI'] ?? '') . '?', '?', true));
-    $base = base_path();
+    $base = base_path(null, true);
 
     return '/' . ltrim('' === $base ? $uri : preg_replace("#^{$base}#", '', $uri, 1), '/');
 }
