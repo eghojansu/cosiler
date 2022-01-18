@@ -373,12 +373,16 @@ function routify(string $filename): array
 {
     $file = trim(str_replace(array('\\', '/'), '.', $filename), '.');
     $tokens = array_map(function ($token) {
-        if ('$' == $token[0]) {
-            $token = '{' . substr($token, 1) . '}';
-        }
+        if ('@' === $token[0]) {
+            $add = null;
+            $pos = 1;
 
-        if ('@' == $token[0]) {
-            $token = '?{' . substr($token, 1) . '}?';
+            if ('@' === $token[1]) {
+                $add = '?';
+                $pos = 2;
+            }
+
+            $token = $add . '{' . substr($token, $pos) . '}' . $add;
         }
 
         return $token;

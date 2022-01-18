@@ -223,8 +223,8 @@ final class RouteTest extends ScopedTestCase
         $this->assertSame(['get', '/foo/bar'], Route\routify('/foo/bar.get.php'));
         $this->assertSame(['get', '/foo/bar'], Route\routify('/foo/bar/index.get.php'));
         $this->assertSame(['get', '/foo/{id}'], Route\routify('/foo.{id}.get.php'));
-        $this->assertSame(['get', '/foo/{id}'], Route\routify('/foo.$id.get.php'));
-        $this->assertSame(['get', '/foo/?{id}?'], Route\routify('/foo.@id.get.php'));
+        $this->assertSame(['get', '/foo/{id}'], Route\routify('/foo.@id.get.php'));
+        $this->assertSame(['get', '/foo/?{id}?'], Route\routify('/foo.@@id.get.php'));
     }
 
     /**
