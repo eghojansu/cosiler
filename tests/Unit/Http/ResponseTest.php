@@ -1,12 +1,16 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Http\Response;
-
 use Ekok\Cosiler\Http\Response;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-final class ResponseTest extends ScopedTestCase
+use function Ekok\Cosiler\storage_reset;
+
+final class ResponseTest extends \Codeception\Test\Unit
 {
+    protected function _before()
+    {
+        storage_reset();
+    }
+
     public function testDefaultOutput()
     {
         $this->expectOutputString('');

@@ -1,23 +1,23 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Route;
-
 use Ekok\Cosiler\Route;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
-use Ekok\Cosiler\Tests\Fixture\Route\RouteClass;
 
-final class RouteTest extends ScopedTestCase
+use function Ekok\Cosiler\Route\purge_match;
+use function Ekok\Cosiler\storage_reset;
+
+final class RouteTest extends \Codeception\Test\Unit
 {
-    protected function setUp(): void
+    protected function _before()
     {
-        parent::setUp();
-
-        $_GET = $_POST = $_REQUEST = ['foo' => 'bar'];
+        $GLOBALS['_GET'] = $GLOBALS['_POST'] = $GLOBALS['_REQUEST'] = ['foo' => 'bar'];
 
         $_SERVER['HTTP_HOST'] = 'test:8000';
         $_SERVER['SCRIPT_NAME'] = '/foo/test.php';
         $_SERVER['REQUEST_URI'] = '/bar/baz';
         $_SERVER['REQUEST_METHOD'] = 'GET';
+
+        storage_reset();
+        purge_match();
     }
 
     public function testRouteWithRequest()
@@ -38,15 +38,15 @@ final class RouteTest extends ScopedTestCase
     {
         $this->expectOutputString('baz');
 
-        Route\handle('get', '/foo', function ($params) {
+        Route\handle('get', '/foo', function () {
             echo 'foo';
         });
 
-        Route\handle('get', '/bar', function ($params) {
+        Route\handle('get', '/bar', function () {
             echo 'bar';
         });
 
-        Route\handle('get', '/bar/baz', function ($params) {
+        Route\handle('get', '/bar/baz', function () {
             echo 'baz';
         });
     }
@@ -143,7 +143,7 @@ final class RouteTest extends ScopedTestCase
 
         unset($_SERVER['REQUEST_URI']);
 
-        Route\handle('get', '/', function ($params) {
+        Route\handle('get', '/', function () {
             echo 'foo';
         });
     }
@@ -151,7 +151,7 @@ final class RouteTest extends ScopedTestCase
     public function testRouteWithString()
     {
         $this->expectOutputString('foo');
-        Route\handle('get', '/bar/{bar}', TEST_FIXTURES . '/routes/shout_foo.php');
+        Route\handle('get', '/bar/{bar}', TEST_DATA . '/routes/shout_foo.php');
     }
 
     public function testRouteMethod()
@@ -160,11 +160,11 @@ final class RouteTest extends ScopedTestCase
 
         $_SERVER['REQUEST_METHOD'] = 'POST';
 
-        Route\handle('get', '/bar/baz', function ($params) {
+        Route\handle('get', '/bar/baz', function () {
             echo 'foo';
         });
 
-        Route\handle('post', '/bar/baz', function ($params) {
+        Route\handle('post', '/bar/baz', function () {
             echo 'bar';
         });
     }
@@ -175,11 +175,11 @@ final class RouteTest extends ScopedTestCase
 
         $_SERVER['REQUEST_METHOD'] = 'POST';
 
-        Route\handle(['get', 'post'], '/bar/baz', function ($params) {
+        Route\handle(['get', 'post'], '/bar/baz', function () {
             echo 'foo';
         });
 
-        Route\handle('post', '/bar/baz', function ($params) {
+        Route\handle('post', '/bar/baz', function () {
             echo 'bar';
         });
     }
@@ -227,9 +227,6 @@ final class RouteTest extends ScopedTestCase
         $this->assertSame(['get', '/foo/?{id}?'], Route\routify('/foo.@@id.get.php'));
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testMethodPath()
     {
         $methodPath = Route\method_path(['OPTIONS', '/baz']);
@@ -240,9 +237,6 @@ final class RouteTest extends ScopedTestCase
         $this->assertSame(['POST', '/bar/baz'], $methodPath);
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testCancel()
     {
         $result = Route\get('/bar/baz', fn() => 'foo');

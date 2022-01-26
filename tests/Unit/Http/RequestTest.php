@@ -1,18 +1,17 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Http\Request;
-
 use Ekok\Cosiler\Http\Request;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-final class RequestTest extends ScopedTestCase
+use function Ekok\Cosiler\storage_reset;
+
+final class RequestTest extends \Codeception\Test\Unit
 {
-    protected function setUp(): void
+    protected function _before()
     {
-        parent::setUp();
+        storage_reset();
 
-        $_GET = $_POST = $_REQUEST = $_COOKIE = $_SESSION = ['foo' => 'bar'];
-        $_FILES = [
+        $GLOBALS['_GET'] = $GLOBALS['_POST'] = $GLOBALS['_REQUEST'] = $GLOBALS['_COOKIE'] = $GLOBALS['_SESSION'] = ['foo' => 'bar'];
+        $GLOBALS['_FILES'] = [
             'foo' => [
                 'name' => 'bar',
             ],
@@ -39,14 +38,14 @@ final class RequestTest extends ScopedTestCase
 
     public function testRaw()
     {
-        $rawContent = Request\raw(TEST_FIXTURES . '/php_input.txt');
+        $rawContent = Request\raw(TEST_DATA . '/php_input.txt');
 
         $this->assertSame('foo=bar', $rawContent);
     }
 
     public function testParams()
     {
-        $params = Request\params(TEST_FIXTURES . '/php_input.txt');
+        $params = Request\params(TEST_DATA . '/php_input.txt');
 
         $this->assertArrayHasKey('foo', $params);
         $this->assertContains('bar', $params);
@@ -57,7 +56,7 @@ final class RequestTest extends ScopedTestCase
 
     public function testJson()
     {
-        $params = Request\json(TEST_FIXTURES . '/php_input.json');
+        $params = Request\json(TEST_DATA . '/php_input.json');
 
         $this->assertArrayHasKey('foo', $params);
         $this->assertContains('bar', $params);
@@ -69,7 +68,7 @@ final class RequestTest extends ScopedTestCase
     public function testBodyParseJson()
     {
         $_SERVER['CONTENT_TYPE'] = 'application/json';
-        $params = Request\body_parse(TEST_FIXTURES . '/php_input.json');
+        $params = Request\body_parse(TEST_DATA . '/php_input.json');
 
         $this->assertArrayHasKey('foo', $params);
         $this->assertContains('bar', $params);
@@ -312,9 +311,6 @@ final class RequestTest extends ScopedTestCase
         $this->assertSame(12.34, Request\post_number('number'));
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testNotInSubFolderPath()
     {
         $_SERVER['SCRIPT_NAME'] = '/index.php';
@@ -323,9 +319,6 @@ final class RequestTest extends ScopedTestCase
         $this->assertSame('/foo/bar', Request\path());
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testSubFolderPathRepeats()
     {
         $_SERVER['REQUEST_URI'] = '/bar/foo/baz';

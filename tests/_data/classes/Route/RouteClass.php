@@ -1,7 +1,5 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Fixture\Route;
-
 use Ekok\Cosiler\Route;
 
 final class RouteClass

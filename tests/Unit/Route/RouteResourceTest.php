@@ -1,12 +1,16 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Route;
-
 use Ekok\Cosiler\Route;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-final class RouteResourceTest extends ScopedTestCase
+use function Ekok\Cosiler\storage_reset;
+
+final class RouteResourceTest extends \Codeception\Test\Unit
 {
+    protected function _before()
+    {
+        storage_reset();
+    }
+
     public function testIndexResource()
     {
         $this->expectOutputString('resources.index');
@@ -14,12 +18,9 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/resources';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources');
+        Route\resource('/resources', TEST_DATA . '/route_resources');
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testCreateResource()
     {
         $this->expectOutputString('resources.create');
@@ -27,7 +28,7 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/resources/create';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources');
+        Route\resource('/resources', TEST_DATA . '/route_resources');
     }
 
     public function testStoreResource()
@@ -38,7 +39,7 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_URI'] = '/resources';
         $_POST['foo'] = 'bar';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources');
+        Route\resource('/resources', TEST_DATA . '/route_resources');
     }
 
     public function testShowResource()
@@ -48,7 +49,7 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/resources/8';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources');
+        Route\resource('/resources', TEST_DATA . '/route_resources');
     }
 
     public function testEditResource()
@@ -58,7 +59,7 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/resources/8/edit';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources');
+        Route\resource('/resources', TEST_DATA . '/route_resources');
     }
 
     public function testUpdateResource()
@@ -68,7 +69,7 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'PUT';
         $_SERVER['REQUEST_URI'] = '/resources/8';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources');
+        Route\resource('/resources', TEST_DATA . '/route_resources');
     }
 
     public function testDestroyResource()
@@ -78,12 +79,9 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'DELETE';
         $_SERVER['REQUEST_URI'] = '/resources/8';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources');
+        Route\resource('/resources', TEST_DATA . '/route_resources');
     }
 
-    /**
-     * @runInSeparateProcess
-     */
     public function testOverrideIdentity()
     {
         $this->expectOutputString('resources.edit foo');
@@ -92,6 +90,6 @@ final class RouteResourceTest extends ScopedTestCase
         $_SERVER['REQUEST_URI'] = '/resources/foo/edit';
         $_SERVER['SCRIPT_NAME'] = '/test/index.php';
 
-        Route\resource('/resources', TEST_FIXTURES . '/route_resources/slug', 'slug');
+        Route\resource('/resources', TEST_DATA . '/route_resources/slug', 'slug');
     }
 }

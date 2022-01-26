@@ -1,16 +1,16 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Route;
-
 use Ekok\Cosiler\Route;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-final class RouteFileTest extends ScopedTestCase
+use function Ekok\Cosiler\storage_reset;
+
+final class RouteFileTest extends \Codeception\Test\Unit
 {
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
+    protected function _before()
+    {
+        storage_reset();
+    }
+
     public function testGetIndex()
     {
         $this->expectOutputString('index.get');
@@ -18,13 +18,9 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testGetContact()
     {
         $this->expectOutputString('contact.get');
@@ -32,13 +28,9 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/contact';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testPostContact()
     {
         $this->expectOutputString('contact.post');
@@ -46,13 +38,9 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['REQUEST_URI'] = '/contact';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testGetAbout()
     {
         $this->expectOutputString('about.index.get');
@@ -60,13 +48,9 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/about';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testGetWithParam()
     {
         $this->expectOutputString('foo.$8.get');
@@ -75,67 +59,47 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/foo/8';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testReturns()
     {
         $_SERVER['REQUEST_URI'] = '/returns';
 
         $expected = 'I am "something" to returns';
-        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+        $actual = Route\files(TEST_DATA . '/route_files/');
 
         $this->assertEquals($expected, $actual);
         $this->assertTrue(Route\did_match());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testReturnsFromGlobals()
     {
         $_SERVER['REQUEST_URI'] = '/returns';
         Route\globals_add('returns_back', "It's returning back");
 
         $expected = "It's returning back";
-        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+        $actual = Route\files(TEST_DATA . '/route_files/');
 
         $this->assertEquals($expected, $actual);
         $this->assertTrue(Route\did_match());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testNotFound()
     {
         $_SERVER['REQUEST_URI'] = '/not-exists-route';
-        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+        $actual = Route\files(TEST_DATA . '/route_files/');
 
         $this->assertNull($actual);
         $this->assertFalse(Route\did_match());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testNotExists()
     {
         $this->expectException(\InvalidArgumentException::class);
         Route\files('path/does/not/exists');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testParamsEater()
     {
         $this->expectOutputString('complete path is: foo/bar/baz');
@@ -144,29 +108,21 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/all/foo/bar/baz';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testParamsEaterNotGiven()
     {
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/all';
 
-        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+        $actual = Route\files(TEST_DATA . '/route_files/');
 
         $this->assertNull($actual);
         $this->assertFalse(Route\did_match());
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testOptionalParamsEater()
     {
         $this->expectOutputString('complete path is: foo/bar/baz');
@@ -175,13 +131,9 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/all-none/foo/bar/baz';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testOptionalParamsEaterNotGiven()
     {
         $this->expectOutputString('complete path is: ');
@@ -190,20 +142,16 @@ final class RouteFileTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/all-none';
 
-        Route\files(TEST_FIXTURES . '/route_files/');
+        Route\files(TEST_DATA . '/route_files/');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testFileSkipped()
     {
         $_SERVER['SCRIPT_NAME'] = '/index.php';
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/skip';
 
-        $actual = Route\files(TEST_FIXTURES . '/route_files/');
+        $actual = Route\files(TEST_DATA . '/route_files/');
 
         $this->assertNull($actual);
         $this->assertFalse(Route\did_match());

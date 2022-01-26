@@ -1,15 +1,12 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Template;
-
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Template;
 
-final class TemplateTest extends TestCase
+final class TemplateTest extends \Codeception\Test\Unit
 {
-    protected function setUp(): void
+    protected function _before()
     {
-        Template\directory(TEST_FIXTURES . '/templates');
+        Template\directory(TEST_DATA . '/templates');
     }
 
     /** @dataProvider loadProvider */

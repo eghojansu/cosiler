@@ -1,21 +1,16 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Http;
-
 use Ekok\Cosiler\Http;
 use Ekok\Cosiler\Http\HttpException;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-final class HttpTest extends ScopedTestCase
+final class HttpTest extends \Codeception\Test\Unit
 {
-    protected function setUp(): void
+    protected function _before()
     {
-        parent::setUp();
-
-        $_GET = array('get' => 'foo');
-        $_POST = array('post' => 'foo');
-        $_REQUEST = array('request' => 'foo');
-        $_COOKIE = array('cookie' => 'foo');
+        $GLOBALS['_GET'] = array('get' => 'foo');
+        $GLOBALS['_POST'] = array('post' => 'foo');
+        $GLOBALS['_REQUEST'] = array('request' => 'foo');
+        $GLOBALS['_COOKIE'] = array('cookie' => 'foo');
 
         $_SERVER['HTTP_HOST'] = 'test:8000';
         $_SERVER['SCRIPT_NAME'] = '/foo/test.php';

@@ -1,16 +1,16 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Route;
-
 use Ekok\Cosiler\Route;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-/**
- * @runTestsInSeparateProcesses
- * @preserveGlobalState disabled
- */
-final class RouteUtf8Test extends ScopedTestCase
+use function Ekok\Cosiler\storage_reset;
+
+final class RouteUtf8Test extends \Codeception\Test\Unit
 {
+    protected function _before()
+    {
+        storage_reset();
+    }
+
     public function testUtf8A()
     {
         $this->expectOutputString('foo');

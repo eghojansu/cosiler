@@ -1,25 +1,14 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Route;
+use Ekok\Cosiler\Route;
 
-use EKok\Cosiler\Route;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
-use Ekok\Cosiler\Tests\Fixture\Route\RouteClass;
+use function Ekok\Cosiler\storage_reset;
 
-class RouteClassNameTest extends ScopedTestCase
+class RouteClassNameTest extends \Codeception\Test\Unit
 {
-    protected function setUp(): void
+    protected function _before()
     {
-        parent::setUp();
-
-        Route\purge_match();
-    }
-
-    protected function tearDown(): void
-    {
-        parent::tearDown();
-
-        Route\resume();
+        storage_reset();
     }
 
     public function testIndex()
@@ -40,10 +29,6 @@ class RouteClassNameTest extends ScopedTestCase
         $this->assertNull($actual);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testPostFoo()
     {
         $this->expectOutputString('className.postFoo');
@@ -52,10 +37,6 @@ class RouteClassNameTest extends ScopedTestCase
         Route\class_name('/class-name', RouteClass::class);
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testPutFooBar()
     {
         $this->expectOutputString('className.putFooBar');

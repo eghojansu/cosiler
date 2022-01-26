@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ekok\Cosiler\Route;
 
 use Ekok\Utils\Arr;
+use Ekok\Utils\File;
 use Ekok\Utils\Payload;
 
 use function Ekok\Cosiler\storage;
@@ -183,19 +184,14 @@ function files(string $basePath, string $prefix = '', $request = null)
         throw new \InvalidArgumentException("{$basePath} does not exists");
     }
 
-    $flags = \FilesystemIterator::KEY_AS_PATHNAME | \FilesystemIterator::CURRENT_AS_FILEINFO | \FilesystemIterator::SKIP_DOTS;
-    $directory = new \RecursiveDirectoryIterator($realpath, $flags);
-    $iterator = new \RecursiveIteratorIterator($directory);
-    $regex = new \RegexIterator($iterator, '/^.+\.php$/i', \RecursiveRegexIterator::GET_MATCH);
-
-    $files = array_keys(iterator_to_array($regex));
     $cut = strlen($realpath);
     $withPrefix = rtrim($prefix, '/');
+    $files = array_keys(iterator_to_array(File::traverse($realpath, '/^.+\.php$/i', \RecursiveRegexIterator::GET_MATCH)));
 
     sort($files);
 
     foreach ($files as $filename) {
-        $file = substr((string) $filename, $cut);
+        $file = substr($filename, $cut);
         $hide = '_' === ($file[1] ?? null);
 
         if ($hide) {
@@ -205,7 +201,7 @@ function files(string $basePath, string $prefix = '', $request = null)
         list($method, $path) = routify($file);
 
         $path = '/' === $path ? ($withPrefix ?: $path) : $withPrefix . $path;
-        $result = handle($method, $path, (string) $filename, $request);
+        $result = handle($method, $path, $filename, $request);
 
         if (did_match()) {
             return $result;

@@ -1,11 +1,8 @@
 <?php
 
-namespace Ekok\Cosiler\Test\Unit\Encoder;
-
-use PHPUnit\Framework\TestCase;
 use Ekok\Cosiler\Encoder\Json;
 
-final class JsonTest extends TestCase
+final class JsonTest extends \Codeception\Test\Unit
 {
     public function testEncode()
     {

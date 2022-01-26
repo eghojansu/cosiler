@@ -1,11 +1,8 @@
 <?php
 
-namespace Ekok\Cosiler\Tests;
-
 use Ekok\Cosiler;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-final class CosilerTest extends ScopedTestCase
+class CosilerTest extends \Codeception\Test\Unit
 {
     /** @dataProvider requireFnProvider */
     public function testRequire_fn($expected, string $file, array $params = null, array $data = null)
@@ -21,18 +18,18 @@ final class CosilerTest extends ScopedTestCase
         return array(
             'require file' => array(
                 'baz',
-                TEST_FIXTURES.'/routes/foo.php',
+                TEST_DATA.'/routes/foo.php',
                 array('bar' => 'baz'),
             ),
             'require file data' => array(
                 'quux',
-                TEST_FIXTURES.'/routes/foo.php',
+                TEST_DATA.'/routes/foo.php',
                 array('qux' => 'quux'),
                 array('get' => 'qux'),
             ),
             'file returns callback' => array(
                 'bar',
-                TEST_FIXTURES.'/routes/callable.php',
+                TEST_DATA.'/routes/callable.php',
                 array('foo' => 'bar'),
             ),
             'file not found' => array(
@@ -42,12 +39,11 @@ final class CosilerTest extends ScopedTestCase
         );
     }
 
-    /** @runInSeparateProcess */
     public function testBootstrap()
     {
         $this->expectOutputString('Exception thrown while running apps');
 
-        Cosiler\bootstrap(TEST_FIXTURES . '/bootstrap/error.php', TEST_FIXTURES . '/bootstrap/start.php');
+        Cosiler\bootstrap(TEST_DATA . '/bootstrap/error.php', TEST_DATA . '/bootstrap/start.php');
     }
 
     public function testStorage()

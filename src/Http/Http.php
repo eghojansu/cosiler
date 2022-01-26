@@ -227,18 +227,18 @@ function status(int $code, bool $throw = true): string
         510 => 'Not Extended',
         511 => 'Network Authentication Required',
     );
-    $unsupported = isset($codes[$code]) ? null : sprintf('Unsupported HTTP code: %s', $code);
+    $text = $codes[$code] ?? sprintf('Unsupported HTTP code: %s', $code);
 
-    if ($unsupported && $throw) {
-        throw new \LogicException($unsupported);
+    if (empty($codes[$code]) && $throw) {
+        throw new \LogicException($text);
     }
 
-    return $codes[$code] ?? $unsupported;
+    return $text;
 }
 
 function error(int $code = 500, string $message = null, array $payload = null, array $headers = null): void
 {
-    throw new HttpException($code, $message, $headers);
+    throw new HttpException($code, $message, $payload, $headers);
 }
 
 function unprocessable(string $message = null, array $payload = null, array $headers = null): void

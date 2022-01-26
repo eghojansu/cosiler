@@ -1,16 +1,16 @@
 <?php
 
-namespace Ekok\Cosiler\Tests\Route;
-
 use Ekok\Cosiler\Route;
-use Ekok\Cosiler\Tests\Fixture\ScopedTestCase;
 
-final class RouteFileWithPrefixTest extends ScopedTestCase
+use function Ekok\Cosiler\storage_reset;
+
+final class RouteFileWithPrefixTest extends \Codeception\Test\Unit
 {
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
+    protected function _before()
+    {
+        storage_reset();
+    }
+
     public function testGetIndex()
     {
         $this->expectOutputString('index.get');
@@ -18,13 +18,9 @@ final class RouteFileWithPrefixTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/foo/';
 
-        Route\files(TEST_FIXTURES . '/route_files/', '/foo');
+        Route\files(TEST_DATA . '/route_files/', '/foo');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testGetContact()
     {
         $this->expectOutputString('contact.get');
@@ -32,13 +28,9 @@ final class RouteFileWithPrefixTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/foo/contact';
 
-        Route\files(TEST_FIXTURES . '/route_files/', '/foo');
+        Route\files(TEST_DATA . '/route_files/', '/foo');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testPostContact()
     {
         $this->expectOutputString('contact.post');
@@ -46,13 +38,9 @@ final class RouteFileWithPrefixTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'POST';
         $_SERVER['REQUEST_URI'] = '/foo/contact';
 
-        Route\files(TEST_FIXTURES . '/route_files/', '/foo');
+        Route\files(TEST_DATA . '/route_files/', '/foo');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testGetAbout()
     {
         $this->expectOutputString('about.index.get');
@@ -60,13 +48,9 @@ final class RouteFileWithPrefixTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/foo/about';
 
-        Route\files(TEST_FIXTURES . '/route_files/', '/foo');
+        Route\files(TEST_DATA . '/route_files/', '/foo');
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState  disabled
-     */
     public function testGetWithParam()
     {
         $this->expectOutputString('foo.$8.get');
@@ -75,6 +59,6 @@ final class RouteFileWithPrefixTest extends ScopedTestCase
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['REQUEST_URI'] = '/foo/foo/8';
 
-        Route\files(TEST_FIXTURES . '/route_files/', '/foo');
+        Route\files(TEST_DATA . '/route_files/', '/foo');
     }
 }
