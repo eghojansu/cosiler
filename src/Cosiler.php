@@ -54,3 +54,8 @@ function storage(string $name = null, ...$sets)
 
     return $default ? ($storage[$default] ?? null) : $storage;
 }
+
+function storage_reset(): void
+{
+    storage(null, 'RESET');
+}

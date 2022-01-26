@@ -70,7 +70,7 @@ final class CosilerTest extends ScopedTestCase
 
         $this->assertSame('baz', Cosiler\storage());
 
-        Cosiler\storage(null, 'RESET');
+        Cosiler\storage_reset();
 
         $this->assertCount(0, Cosiler\storage());
     }
