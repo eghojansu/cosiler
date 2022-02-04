@@ -148,11 +148,4 @@ final class ResponseTest extends \Codeception\Test\Unit
             $this->assertTrue(true);
         }
     }
-
-    public function testWantsJson()
-    {
-        $_SERVER['HTTP_ACCEPT'] = 'application/json';
-
-        $this->assertTrue(Response\wants_json());
-    }
 }

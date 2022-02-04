@@ -267,6 +267,13 @@ final class RequestTest extends \Codeception\Test\Unit
         $this->assertFalse(Request\is_json());
     }
 
+    public function testWantsJson()
+    {
+        $_SERVER['HTTP_ACCEPT'] = 'application/json';
+
+        $this->assertTrue(Request\wants_json());
+    }
+
     public function testIsMultipart()
     {
         $_SERVER['CONTENT_TYPE'] = 'multipart/form-data ----foobarbaz';

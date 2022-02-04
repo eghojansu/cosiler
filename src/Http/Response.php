@@ -19,11 +19,6 @@ function start(int $code = 200, string $mimeType = 'text/html', string $charset 
     header(sprintf('%s: %s;charset=%s', 'Content-Type', $mimeType, $charset), null, true, $code);
 }
 
-function wants_json(): bool
-{
-    return false !== strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
-}
-
 /**
  * Outputs the given parameters based on a HTTP response.
  *
