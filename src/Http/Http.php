@@ -75,7 +75,7 @@ function is_builtin(): bool
     return 'cli-server' === PHP_SAPI;
 }
 
-function set_base_path(string $base): void
+function set_base_path(string|null $base): void
 {
     storage(BASE_PATH, $base);
 }
@@ -95,7 +95,7 @@ function base_path(string $path = null, bool $entry = false): string
     return $str;
 }
 
-function set_entry(string $entry): void
+function set_entry(string|null $entry): void
 {
     storage(ENTRY_FILE, $entry);
 }
@@ -107,7 +107,7 @@ function entry(bool $prefix = false): string
     return $prefix && $entry ? '/' . $entry : $entry;
 }
 
-function set_scheme(string $scheme): void
+function set_scheme(string|null $scheme): void
 {
     storage(HTTP_SCHEME, $scheme);
 }
@@ -119,7 +119,7 @@ function scheme(bool $suffix = false): string
     return $suffix ? $scheme . '://' : $scheme;
 }
 
-function set_host(string $host): void
+function set_host(string|null $host): void
 {
     storage(HTTP_HOST, $host);
 }
@@ -129,7 +129,7 @@ function host(): string
     return strstr((storage(HTTP_HOST) ?? storage(HTTP_HOST, $_SERVER['HTTP_HOST'] ?? 'localhost')) . ':', ':', true);
 }
 
-function set_port(string|int $port): void
+function set_port(string|int|null $port): void
 {
     storage(HTTP_PORT, $port);
 }
