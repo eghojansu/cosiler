@@ -93,6 +93,11 @@ function is_json(): ?bool
     return content_is('application/json');
 }
 
+function wants_json(): bool
+{
+    return false !== strpos($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+}
+
 /**
  * Returns true if the current request is multipart/form-data, based on Content-type header.
  */
