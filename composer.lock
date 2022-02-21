@@ -4,8 +4,55 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "7e57bac7cc87a2220f3fd39a50041a34",
+    "content-hash": "e44c4f4c372bd5d233db57463e5e67f0",
     "packages": [
+        {
+            "name": "ekok/php-container",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/eghojansu/php-container.git",
+                "reference": "8a2cb8b32c14e60bed268c9cf5f31db51e2e98b7"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/eghojansu/php-container/zipball/8a2cb8b32c14e60bed268c9cf5f31db51e2e98b7",
+                "reference": "8a2cb8b32c14e60bed268c9cf5f31db51e2e98b7",
+                "shasum": ""
+            },
+            "require": {
+                "ekok/php-utils": "dev-master",
+                "php": ">=8.0"
+            },
+            "require-dev": {
+                "codeception/codeception": "~4.1",
+                "codeception/module-asserts": "^1.0.0",
+                "codeception/module-phpbrowser": "^1.0.0"
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Ekok\\Container\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Eko Kurniawan",
+                    "email": "setiawanegho@gmail.com"
+                }
+            ],
+            "description": "PHP Container",
+            "support": {
+                "issues": "https://github.com/eghojansu/php-container/issues",
+                "source": "https://github.com/eghojansu/php-container/tree/master"
+            },
+            "time": "2022-02-18T04:03:21+00:00"
+        },
         {
             "name": "ekok/php-utils",
             "version": "dev-master",
@@ -4521,7 +4568,8 @@
     "aliases": [],
     "minimum-stability": "stable",
     "stability-flags": {
-        "ekok/php-utils": 20
+        "ekok/php-utils": 20,
+        "ekok/php-container": 20
     },
     "prefer-stable": false,
     "prefer-lowest": false,
@@ -4529,5 +4577,5 @@
         "php": ">=8.0"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.0.0"
+    "plugin-api-version": "2.1.0"
 }
